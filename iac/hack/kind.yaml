@@ -1,0 +1,45 @@
+# docker volume create kind-worker1-containerd
+# docker volume create kind-control1-containerd
+# kind create cluster --config hack/kind.yaml
+# https://kind.sigs.k8s.io/docs/user/quick-start/#loading-an-image-into-your-cluster
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: search-api
+networking:
+  apiServerAddress: "0.0.0.0"
+  apiServerPort: 6443
+nodes:
+
+  # Control Plane
+  - role: control-plane
+    image: kindest/node:v1.28.0
+    # Control-Plane Persistent image cache (optional)
+    extraMounts:
+    - hostPath: /var/lib/docker/volumes/kind-control1-containerd/_data
+      containerPath: /var/lib/containerd
+ 
+  # Worker Node
+  - role: worker
+    image: kindest/node:v1.28.0
+    # Worker Persistent image cache (optional)
+    extraMounts:
+      - hostPath: /var/lib/docker/volumes/kind-worker1-containerd/_data
+        containerPath: /var/lib/containerd
+    # Attach our kind cluster to host ports 80 and 443
+    extraPortMappings:
+    - listenAddress: "0.0.0.0"
+      protocol: TCP
+      hostPort: 80
+      containerPort: 80
+    - listenAddress: "0.0.0.0"
+      protocol: TCP
+      hostPort: 443
+      containerPort: 443
+    # We are going to add an ingress label to this node
+    kubeadmConfigPatches:
+    - |
+      kind: JoinConfiguration
+      nodeRegistration:
+        kubeletExtraArgs:
+          node-labels: "ingress-ready=true"
