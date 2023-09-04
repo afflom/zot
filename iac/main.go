@@ -1,105 +1,147 @@
 package main
 
 import (
-	"github.com/pulumi/pulumi-docker/sdk/v3/go/docker"
-	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
+	"fmt"
+	"os"
+	"path/filepath"
+
+	k8s "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
+	apps "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/apps/v1"
+	core "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
+	meta "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
+	p "github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	pcfg "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
 
-func main() {
-	pulumi.Run(func(ctx *pulumi.Context) error {
-		// Read general config
-		conf := config.New(ctx, "")
-		pushImage := conf.GetBool("pushImage")
-		zotUser := conf.Get("zotUser")
-		if zotUser == "" {
-			zotUser = "defaultUser"
-		}
+const (
+	DefaultAppName    = "nginx"
+	DefaultAppImage   = "docker.io/library/nginx"
+	DefaultAppVersion = "latest"
+	DefaultReplicas   = 1
+	DefaultKubeConfig = "~/.kube/config"
+)
 
-		zotPasswd := conf.GetSecret("zotPasswd")
-		var actualZotPasswd pulumi.StringOutput
-		actualZotPasswd = zotPasswd.ApplyT(func(val string) string {
-			if val == "" {
-				return "defaultPassword"
-			}
-			return val
-		}).(pulumi.StringOutput)
+type App struct {
+	Name    string
+	Image   string
+	Version string
+}
 
-		var imageArgs *docker.ImageArgs
+func getKubeConfig(config *pcfg.Config) (string, string) {
+	kubeConfig := config.Get("kubeConfig")
+	if kubeConfig == "" {
+		kubeConfig = os.Getenv("KUBECONFIG")
+	}
+	if kubeConfig == "" {
+		kubeConfig = filepath.Join(os.Getenv("HOME"), ".kube", "config")
+	}
+	kubeContext := config.Get("kubeContext")
+	return kubeConfig, kubeContext
+}
 
-		// If pushImage is true, include registry details
-		if pushImage {
-			imageArgs = &docker.ImageArgs{
-				Build: &docker.DockerBuildArgs{
-					Context: pulumi.String("../build"),
-				},
-				ImageName: pulumi.String("emporous/uor-zot:dev"),
-				Registry: &docker.ImageRegistryArgs{
-					Server:   pulumi.String("ghcr.io"),
-					Username: pulumi.String("emporous"),
-					Password: pulumi.String("api-key-string"),
-				},
-			}
-		} else {
-			// Otherwise, just build the image locally
-			imageArgs = &docker.ImageArgs{
-				Build: &docker.DockerBuildArgs{
-					Context: pulumi.String("../build"),
-				},
-			}
-		}
+func getReplicas(config *pcfg.Config) int {
+	replicas := config.GetInt("replicas")
+	if replicas == 0 {
+		replicas = DefaultReplicas
+	}
+	return replicas
+}
 
-		// Build and optionally publish the Docker image
-		image, err := docker.NewImage(ctx, "ghcr.io/emporous/uor-zot", imageArgs)
-		if err != nil {
-			return err
-		}
+func getAppConfig(config *pcfg.Config) App {
+	return App{
+		Name:    IfEmpty(config.Get("appName"), DefaultAppName),
+		Image:   IfEmpty(config.Get("appImage"), DefaultAppImage),
+		Version: IfEmpty(config.Get("appVersion"), DefaultAppVersion),
+	}
+}
 
-		// Create Kubernetes provider
-		provider, err := kubernetes.NewProvider(ctx, "k8s-provider", &kubernetes.ProviderArgs{
-			Kubeconfig: pulumi.String("~/.kube/config"),
-		})
-		if err != nil {
-			return err
-		}
+func CreateProvider(ctx *p.Context, kubeConfig, kubeContext string) (*k8s.Provider, error) {
+	providerArgs := &k8s.ProviderArgs{}
+	if kubeConfig != "" {
+		providerArgs.Kubeconfig = p.String(kubeConfig)
+	}
+	if kubeContext != "" {
+		providerArgs.Context = p.String(kubeContext)
+	}
+	return k8s.NewProvider(ctx, "kubeconfig", providerArgs)
+}
 
-		// Deploy Zot using the built Docker image
-		_, err = kubernetes.NewDeployment(ctx, "zot-deployment", &kubernetes.DeploymentArgs{
-			Metadata: &kubernetes.ObjectMetaArgs{
-				Name: pulumi.String("zot"),
+func CreateDeploymentArgs(app App, appLabels p.StringMap, replicas int) *apps.DeploymentArgs {
+	image := fmt.Sprintf("%s:%s", app.Image, app.Version)
+	return &apps.DeploymentArgs{
+		Metadata: &meta.ObjectMetaArgs{
+			Labels: appLabels,
+		},
+		Spec: &apps.DeploymentSpecArgs{
+			Replicas: p.Int(replicas),
+			Selector: &meta.LabelSelectorArgs{
+				MatchLabels: appLabels,
 			},
-			Spec: &kubernetes.DeploymentSpecArgs{
-				Template: &kubernetes.PodTemplateSpecArgs{
-					Metadata: &kubernetes.ObjectMetaArgs{
-						Labels: pulumi.StringMap{"app": pulumi.String("zot")},
-					},
-					Spec: &kubernetes.PodSpecArgs{
-						Containers: kubernetes.ContainerArray{
-							&kubernetes.ContainerArgs{
-								Name:  pulumi.String("zot"),
-								Image: image.ImageName,
-								Env: kubernetes.EnvVarArray{
-									&kubernetes.EnvVarArgs{
-										Name:  pulumi.String("ZOT_USER"),
-										Value: pulumi.String(zotUser),
-									},
-									&kubernetes.EnvVarArgs{
-										Name:      pulumi.String("ZOT_PASSWD"),
-										ValueFrom: &kubernetes.EnvVarSourceArgs{SecretKeyRef: &kubernetes.SecretKeySelectorArgs{Key: pulumi.String("password"), Name: actualZotPasswd}},
-									},
-								},
-							},
+			Template: &core.PodTemplateSpecArgs{
+				Metadata: &meta.ObjectMetaArgs{
+					Labels: appLabels,
+				},
+				Spec: &core.PodSpecArgs{
+					Containers: core.ContainerArray{
+						&core.ContainerArgs{
+							Name:  p.String(app.Name),
+							Image: p.String(image),
 						},
 					},
 				},
 			},
-		}, pulumi.Provider(provider))
+		},
+	}
+}
 
+func CreateDeployment(ctx *p.Context, app App, provider *k8s.Provider, replicas int) (*apps.Deployment, error) {
+	appLabels := CreateAppLabels(app)
+	deploymentArgs := CreateDeploymentArgs(app, appLabels, replicas)
+	options := CreateResourceOptions(provider)
+	return apps.NewDeployment(ctx, app.Name, deploymentArgs, options...)
+}
+
+func CreateAppLabels(app App) p.StringMap {
+	return p.StringMap{
+		"app":       p.String(app.Name),
+		"managedBy": p.String("Pulumi"),
+		"version":   p.String(app.Version),
+	}
+}
+
+func CreateResourceOptions(provider *k8s.Provider) []p.ResourceOption {
+	options := []p.ResourceOption{p.DeleteBeforeReplace(true)}
+	if provider != nil {
+		options = append(options, p.Provider(provider))
+	}
+	return options
+}
+
+func IfEmpty(val, defaultVal string) string {
+	if val == "" {
+		return defaultVal
+	}
+	return val
+}
+
+func main() {
+	p.Run(func(ctx *p.Context) error {
+		config := pcfg.New(ctx, "")
+		app := getAppConfig(config)
+		kubeConfig, kubeContext := getKubeConfig(config)
+		replicas := getReplicas(config)
+
+		provider, err := CreateProvider(ctx, kubeConfig, kubeContext)
 		if err != nil {
 			return err
 		}
 
+		deployment, err := CreateDeployment(ctx, app, provider, replicas)
+		if err != nil {
+			return err
+		}
+
+		ctx.Export("name", p.String(deployment.Metadata.ElementType().Name()))
 		return nil
 	})
 }
