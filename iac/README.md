@@ -75,3 +75,11 @@ pulumi destroy
 ```
 
 Review the resources to be destroyed and select yes to proceed with the destruction.
+
+-------------------------------------------------------
+
+## Local Development
+
+```bash
+export GOFLAGS='-replace=github.com/emporous/uor-zot=.'
+```
