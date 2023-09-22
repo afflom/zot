@@ -8,146 +8,117 @@ import (
 )
 
 var (
-	// ObjectsColumns holds the columns for the "objects" table.
-	ObjectsColumns = []*schema.Column{
+	// ElementsColumns holds the columns for the "elements" table.
+	ElementsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "object_type", Type: field.TypeString},
-		{Name: "object", Type: field.TypeJSON},
+		{Name: "resource_type", Type: field.TypeString},
+		{Name: "locator_type", Type: field.TypeString},
+		{Name: "resource_elements", Type: field.TypeInt, Nullable: true},
+		{Name: "statement_objects", Type: field.TypeInt, Nullable: true},
+		{Name: "statement_predicates", Type: field.TypeInt, Nullable: true},
+		{Name: "statement_subjects", Type: field.TypeInt, Nullable: true},
+		{Name: "statement_statements", Type: field.TypeInt, Nullable: true},
 	}
-	// ObjectsTable holds the schema information for the "objects" table.
-	ObjectsTable = &schema.Table{
-		Name:       "objects",
-		Columns:    ObjectsColumns,
-		PrimaryKey: []*schema.Column{ObjectsColumns[0]},
+	// ElementsTable holds the schema information for the "elements" table.
+	ElementsTable = &schema.Table{
+		Name:       "elements",
+		Columns:    ElementsColumns,
+		PrimaryKey: []*schema.Column{ElementsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "elements_resources_elements",
+				Columns:    []*schema.Column{ElementsColumns[3]},
+				RefColumns: []*schema.Column{ResourcesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "elements_statements_objects",
+				Columns:    []*schema.Column{ElementsColumns[4]},
+				RefColumns: []*schema.Column{StatementsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "elements_statements_predicates",
+				Columns:    []*schema.Column{ElementsColumns[5]},
+				RefColumns: []*schema.Column{StatementsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "elements_statements_subjects",
+				Columns:    []*schema.Column{ElementsColumns[6]},
+				RefColumns: []*schema.Column{StatementsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "elements_statements_statements",
+				Columns:    []*schema.Column{ElementsColumns[7]},
+				RefColumns: []*schema.Column{StatementsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
-	// SpredicatesColumns holds the columns for the "spredicates" table.
-	SpredicatesColumns = []*schema.Column{
+	// ResourcesColumns holds the columns for the "resources" table.
+	ResourcesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "predicate_type", Type: field.TypeString},
-		{Name: "predicate", Type: field.TypeJSON},
+		{Name: "message", Type: field.TypeJSON},
+		{Name: "element_resources", Type: field.TypeInt, Nullable: true},
+		{Name: "element_locations", Type: field.TypeInt, Nullable: true},
 	}
-	// SpredicatesTable holds the schema information for the "spredicates" table.
-	SpredicatesTable = &schema.Table{
-		Name:       "spredicates",
-		Columns:    SpredicatesColumns,
-		PrimaryKey: []*schema.Column{SpredicatesColumns[0]},
+	// ResourcesTable holds the schema information for the "resources" table.
+	ResourcesTable = &schema.Table{
+		Name:       "resources",
+		Columns:    ResourcesColumns,
+		PrimaryKey: []*schema.Column{ResourcesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "resources_elements_resources",
+				Columns:    []*schema.Column{ResourcesColumns[2]},
+				RefColumns: []*schema.Column{ElementsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "resources_elements_locations",
+				Columns:    []*schema.Column{ResourcesColumns[3]},
+				RefColumns: []*schema.Column{ElementsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// StatementsColumns holds the columns for the "statements" table.
 	StatementsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "namespace", Type: field.TypeString},
-		{Name: "statement", Type: field.TypeJSON},
+		{Name: "media_type", Type: field.TypeString},
+		{Name: "element_statements", Type: field.TypeInt, Nullable: true},
 	}
 	// StatementsTable holds the schema information for the "statements" table.
 	StatementsTable = &schema.Table{
 		Name:       "statements",
 		Columns:    StatementsColumns,
 		PrimaryKey: []*schema.Column{StatementsColumns[0]},
-	}
-	// SubjectsColumns holds the columns for the "subjects" table.
-	SubjectsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "subject_type", Type: field.TypeString},
-		{Name: "subject", Type: field.TypeJSON},
-	}
-	// SubjectsTable holds the schema information for the "subjects" table.
-	SubjectsTable = &schema.Table{
-		Name:       "subjects",
-		Columns:    SubjectsColumns,
-		PrimaryKey: []*schema.Column{SubjectsColumns[0]},
-	}
-	// StatementObjectsColumns holds the columns for the "statement_objects" table.
-	StatementObjectsColumns = []*schema.Column{
-		{Name: "statement_id", Type: field.TypeInt},
-		{Name: "object_id", Type: field.TypeInt},
-	}
-	// StatementObjectsTable holds the schema information for the "statement_objects" table.
-	StatementObjectsTable = &schema.Table{
-		Name:       "statement_objects",
-		Columns:    StatementObjectsColumns,
-		PrimaryKey: []*schema.Column{StatementObjectsColumns[0], StatementObjectsColumns[1]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "statement_objects_statement_id",
-				Columns:    []*schema.Column{StatementObjectsColumns[0]},
-				RefColumns: []*schema.Column{StatementsColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "statement_objects_object_id",
-				Columns:    []*schema.Column{StatementObjectsColumns[1]},
-				RefColumns: []*schema.Column{ObjectsColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-		},
-	}
-	// StatementPredicatesColumns holds the columns for the "statement_predicates" table.
-	StatementPredicatesColumns = []*schema.Column{
-		{Name: "statement_id", Type: field.TypeInt},
-		{Name: "spredicate_id", Type: field.TypeInt},
-	}
-	// StatementPredicatesTable holds the schema information for the "statement_predicates" table.
-	StatementPredicatesTable = &schema.Table{
-		Name:       "statement_predicates",
-		Columns:    StatementPredicatesColumns,
-		PrimaryKey: []*schema.Column{StatementPredicatesColumns[0], StatementPredicatesColumns[1]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "statement_predicates_statement_id",
-				Columns:    []*schema.Column{StatementPredicatesColumns[0]},
-				RefColumns: []*schema.Column{StatementsColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "statement_predicates_spredicate_id",
-				Columns:    []*schema.Column{StatementPredicatesColumns[1]},
-				RefColumns: []*schema.Column{SpredicatesColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-		},
-	}
-	// StatementSubjectsColumns holds the columns for the "statement_subjects" table.
-	StatementSubjectsColumns = []*schema.Column{
-		{Name: "statement_id", Type: field.TypeInt},
-		{Name: "subject_id", Type: field.TypeInt},
-	}
-	// StatementSubjectsTable holds the schema information for the "statement_subjects" table.
-	StatementSubjectsTable = &schema.Table{
-		Name:       "statement_subjects",
-		Columns:    StatementSubjectsColumns,
-		PrimaryKey: []*schema.Column{StatementSubjectsColumns[0], StatementSubjectsColumns[1]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "statement_subjects_statement_id",
-				Columns:    []*schema.Column{StatementSubjectsColumns[0]},
-				RefColumns: []*schema.Column{StatementsColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "statement_subjects_subject_id",
-				Columns:    []*schema.Column{StatementSubjectsColumns[1]},
-				RefColumns: []*schema.Column{SubjectsColumns[0]},
-				OnDelete:   schema.Cascade,
+				Symbol:     "statements_elements_statements",
+				Columns:    []*schema.Column{StatementsColumns[2]},
+				RefColumns: []*schema.Column{ElementsColumns[0]},
+				OnDelete:   schema.SetNull,
 			},
 		},
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
-		ObjectsTable,
-		SpredicatesTable,
+		ElementsTable,
+		ResourcesTable,
 		StatementsTable,
-		SubjectsTable,
-		StatementObjectsTable,
-		StatementPredicatesTable,
-		StatementSubjectsTable,
 	}
 )
 
 func init() {
-	StatementObjectsTable.ForeignKeys[0].RefTable = StatementsTable
-	StatementObjectsTable.ForeignKeys[1].RefTable = ObjectsTable
-	StatementPredicatesTable.ForeignKeys[0].RefTable = StatementsTable
-	StatementPredicatesTable.ForeignKeys[1].RefTable = SpredicatesTable
-	StatementSubjectsTable.ForeignKeys[0].RefTable = StatementsTable
-	StatementSubjectsTable.ForeignKeys[1].RefTable = SubjectsTable
+	ElementsTable.ForeignKeys[0].RefTable = ResourcesTable
+	ElementsTable.ForeignKeys[1].RefTable = StatementsTable
+	ElementsTable.ForeignKeys[2].RefTable = StatementsTable
+	ElementsTable.ForeignKeys[3].RefTable = StatementsTable
+	ElementsTable.ForeignKeys[4].RefTable = StatementsTable
+	ResourcesTable.ForeignKeys[0].RefTable = ElementsTable
+	ResourcesTable.ForeignKeys[1].RefTable = ElementsTable
+	StatementsTable.ForeignKeys[0].RefTable = ElementsTable
 }

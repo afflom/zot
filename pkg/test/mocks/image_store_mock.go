@@ -1,6 +1,7 @@
 package mocks
 
 import (
+	"database/sql"
 	"io"
 	"time"
 
@@ -8,7 +9,6 @@ import (
 	ispec "github.com/opencontainers/image-spec/specs-go/v1"
 	artifactspec "github.com/oras-project/artifacts-spec/specs-go/v1"
 
-	"zotregistry.io/zot/ent"
 	"zotregistry.io/zot/pkg/scheduler"
 )
 
@@ -52,12 +52,12 @@ type MockedImageStore struct {
 	RunDedupeBlobsFn             func(interval time.Duration, sch *scheduler.Scheduler)
 	RunDedupeForDigestFn         func(digest godigest.Digest, dedupe bool, duplicateBlobs []string) error
 	GetNextDigestWithBlobPathsFn func(lastDigests []godigest.Digest) (godigest.Digest, []string, error)
-	AddToIndexfn                 func(repo string, descriptor ispec.Descriptor, manifest ispec.Manifest, eclient *ent.Client) error
+	AddToIndexfn                 func(repo string, descriptor ispec.Descriptor, manifest ispec.Manifest, eclient *sql.DB) error
 	GetStatementDescriptorfn     func(repo string, digest godigest.Digest) ([]byte, error)
-	InitDatabasefn               func() (*ent.Client, error)
+	InitDatabasefn               func() (*sql.DB, error)
 }
 
-func (MockedImageStore) InitDatabase() (*ent.Client, error) {
+func (MockedImageStore) InitDatabase() (*sql.DB, error) {
 	return nil, nil
 }
 
@@ -66,7 +66,7 @@ func (MockedImageStore) GetStatementDescriptor(repo string, digest godigest.Dige
 	return nil, nil
 }
 
-func (is MockedImageStore) AddToIndex(repo string, descriptor ispec.Descriptor, manifest ispec.Manifest, eclient *ent.Client) error {
+func (is MockedImageStore) AddToIndex(repo string, descriptor ispec.Descriptor, manifest ispec.Manifest, eclient *sql.DB) error {
 	return nil
 }
 

@@ -3,18 +3,14 @@ package api
 import (
 	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
 
-	"github.com/99designs/gqlgen/graphql"
 	glob "github.com/bmatcuk/doublestar/v4"
 	"github.com/gorilla/mux"
 	"zotregistry.io/zot/pkg/api/config"
 	"zotregistry.io/zot/pkg/common"
 	"zotregistry.io/zot/pkg/log"
 	localCtx "zotregistry.io/zot/pkg/requestcontext"
-	sschema "zotregistry.io/zot/pkg/search/schema"
 )
 
 const (
@@ -402,8 +398,9 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	return rw.ResponseWriter.Write(b)
 }
 
+/*
 // filterStatements filters the statements based on user authorization.
-func (ac *AccessController) filterStatements(ctx context.Context, statements []sschema.StatementRecord) []sschema.StatementRecord {
+func (ac *AccessController) filterStatements(ctx context.Context, statements []sschema.Element) []sschema.Location {
 	fmt.Println("filterStatements called")
 	// Extract the user's authorization from the context.
 	acCtx, err := localCtx.GetAccessControlContext(ctx)
@@ -418,16 +415,17 @@ func (ac *AccessController) filterStatements(ctx context.Context, statements []s
 	fmt.Printf("username: %s\n", acCtx.Username)
 
 	// Filter the statements based on the user's authorization.
-	var filteredStatements []sschema.StatementRecord
+	var filteredStatements []sschema.Location
 	for _, statement := range statements {
-		namespace := statement.Location.Namespace
+		namespace := statement.Location["namespace"].(string)
 		if acCtx.CanReadRepo(namespace) {
-			filteredStatements = append(filteredStatements, statement)
+			filteredStatements = append(filteredStatements, statement.Location)
 		}
 	}
 
 	return filteredStatements
 }
+
 
 type customResponseWriter struct {
 	http.ResponseWriter
@@ -498,3 +496,4 @@ func (controller *Controller) GraphQLAuthzMiddleware(next http.Handler) http.Han
 		w.Write(filteredResponse)
 	})
 }
+*/

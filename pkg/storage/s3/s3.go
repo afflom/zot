@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -23,7 +24,6 @@ import (
 	artifactspec "github.com/oras-project/artifacts-spec/specs-go/v1"
 	"github.com/rs/zerolog"
 
-	"zotregistry.io/zot/ent"
 	zerr "zotregistry.io/zot/errors"
 	zcommon "zotregistry.io/zot/pkg/common"
 	"zotregistry.io/zot/pkg/extensions/monitoring"
@@ -54,7 +54,7 @@ type ObjectStorage struct {
 }
 
 // InitDatabase implements types.ImageStore.
-func (*ObjectStorage) InitDatabase() (*ent.Client, error) {
+func (*ObjectStorage) InitDatabase() (*sql.DB, error) {
 	panic("unimplemented")
 }
 
@@ -64,7 +64,7 @@ func (*ObjectStorage) GetStatementDescriptor(repo string, digest godigest.Digest
 }
 
 // MarkStatement implements types.ImageStore.
-func (*ObjectStorage) AddToIndex(repo string, descriptor ispec.Descriptor, manifest ispec.Manifest, eclient *ent.Client) error {
+func (*ObjectStorage) AddToIndex(repo string, descriptor ispec.Descriptor, manifest ispec.Manifest, eclient *sql.DB) error {
 	panic("unimplemented")
 }
 

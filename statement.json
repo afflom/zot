@@ -2,9 +2,15 @@
     "schemaVersion": 99,
     "mediaType": "application/vnd.uor.statement.v1+json",
     "subject":{
-        "subjectType": "localhost/testsubject/type:v1",
-        "noun":{
-            "test": "test subject"
+        "resourceType": "localhost/testsubject/type:v1",
+        "locatorType": "localhost/oci/type:v1",
+        "location":{
+            "namespace": "localhost:8080/hello/test"
+        },
+        "resource":{
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:1e122525784c16adc373702f3966025dd09bf249b942d028c19b606d9fb4c987",
+            "size": 533
         }
     },
     "predicate":{

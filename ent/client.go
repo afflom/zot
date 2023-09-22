@@ -14,10 +14,9 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"zotregistry.io/zot/ent/object"
-	"zotregistry.io/zot/ent/spredicate"
+	"zotregistry.io/zot/ent/element"
+	"zotregistry.io/zot/ent/resource"
 	"zotregistry.io/zot/ent/statement"
-	"zotregistry.io/zot/ent/subject"
 
 	stdsql "database/sql"
 )
@@ -27,14 +26,12 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
-	// Object is the client for interacting with the Object builders.
-	Object *ObjectClient
-	// Spredicate is the client for interacting with the Spredicate builders.
-	Spredicate *SpredicateClient
+	// Element is the client for interacting with the Element builders.
+	Element *ElementClient
+	// Resource is the client for interacting with the Resource builders.
+	Resource *ResourceClient
 	// Statement is the client for interacting with the Statement builders.
 	Statement *StatementClient
-	// Subject is the client for interacting with the Subject builders.
-	Subject *SubjectClient
 	// additional fields for node api
 	tables tables
 }
@@ -50,10 +47,9 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
-	c.Object = NewObjectClient(c.config)
-	c.Spredicate = NewSpredicateClient(c.config)
+	c.Element = NewElementClient(c.config)
+	c.Resource = NewResourceClient(c.config)
 	c.Statement = NewStatementClient(c.config)
-	c.Subject = NewSubjectClient(c.config)
 }
 
 type (
@@ -134,12 +130,11 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:        ctx,
-		config:     cfg,
-		Object:     NewObjectClient(cfg),
-		Spredicate: NewSpredicateClient(cfg),
-		Statement:  NewStatementClient(cfg),
-		Subject:    NewSubjectClient(cfg),
+		ctx:       ctx,
+		config:    cfg,
+		Element:   NewElementClient(cfg),
+		Resource:  NewResourceClient(cfg),
+		Statement: NewStatementClient(cfg),
 	}, nil
 }
 
@@ -157,19 +152,18 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:        ctx,
-		config:     cfg,
-		Object:     NewObjectClient(cfg),
-		Spredicate: NewSpredicateClient(cfg),
-		Statement:  NewStatementClient(cfg),
-		Subject:    NewSubjectClient(cfg),
+		ctx:       ctx,
+		config:    cfg,
+		Element:   NewElementClient(cfg),
+		Resource:  NewResourceClient(cfg),
+		Statement: NewStatementClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Object.
+//		Element.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -191,123 +185,119 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	c.Object.Use(hooks...)
-	c.Spredicate.Use(hooks...)
+	c.Element.Use(hooks...)
+	c.Resource.Use(hooks...)
 	c.Statement.Use(hooks...)
-	c.Subject.Use(hooks...)
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	c.Object.Intercept(interceptors...)
-	c.Spredicate.Intercept(interceptors...)
+	c.Element.Intercept(interceptors...)
+	c.Resource.Intercept(interceptors...)
 	c.Statement.Intercept(interceptors...)
-	c.Subject.Intercept(interceptors...)
 }
 
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
-	case *ObjectMutation:
-		return c.Object.mutate(ctx, m)
-	case *SpredicateMutation:
-		return c.Spredicate.mutate(ctx, m)
+	case *ElementMutation:
+		return c.Element.mutate(ctx, m)
+	case *ResourceMutation:
+		return c.Resource.mutate(ctx, m)
 	case *StatementMutation:
 		return c.Statement.mutate(ctx, m)
-	case *SubjectMutation:
-		return c.Subject.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
 }
 
-// ObjectClient is a client for the Object schema.
-type ObjectClient struct {
+// ElementClient is a client for the Element schema.
+type ElementClient struct {
 	config
 }
 
-// NewObjectClient returns a client for the Object from the given config.
-func NewObjectClient(c config) *ObjectClient {
-	return &ObjectClient{config: c}
+// NewElementClient returns a client for the Element from the given config.
+func NewElementClient(c config) *ElementClient {
+	return &ElementClient{config: c}
 }
 
 // Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `object.Hooks(f(g(h())))`.
-func (c *ObjectClient) Use(hooks ...Hook) {
-	c.hooks.Object = append(c.hooks.Object, hooks...)
+// A call to `Use(f, g, h)` equals to `element.Hooks(f(g(h())))`.
+func (c *ElementClient) Use(hooks ...Hook) {
+	c.hooks.Element = append(c.hooks.Element, hooks...)
 }
 
 // Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `object.Intercept(f(g(h())))`.
-func (c *ObjectClient) Intercept(interceptors ...Interceptor) {
-	c.inters.Object = append(c.inters.Object, interceptors...)
+// A call to `Intercept(f, g, h)` equals to `element.Intercept(f(g(h())))`.
+func (c *ElementClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Element = append(c.inters.Element, interceptors...)
 }
 
-// Create returns a builder for creating a Object entity.
-func (c *ObjectClient) Create() *ObjectCreate {
-	mutation := newObjectMutation(c.config, OpCreate)
-	return &ObjectCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Create returns a builder for creating a Element entity.
+func (c *ElementClient) Create() *ElementCreate {
+	mutation := newElementMutation(c.config, OpCreate)
+	return &ElementCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
-// CreateBulk returns a builder for creating a bulk of Object entities.
-func (c *ObjectClient) CreateBulk(builders ...*ObjectCreate) *ObjectCreateBulk {
-	return &ObjectCreateBulk{config: c.config, builders: builders}
+// CreateBulk returns a builder for creating a bulk of Element entities.
+func (c *ElementClient) CreateBulk(builders ...*ElementCreate) *ElementCreateBulk {
+	return &ElementCreateBulk{config: c.config, builders: builders}
 }
 
-// Update returns an update builder for Object.
-func (c *ObjectClient) Update() *ObjectUpdate {
-	mutation := newObjectMutation(c.config, OpUpdate)
-	return &ObjectUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Update returns an update builder for Element.
+func (c *ElementClient) Update() *ElementUpdate {
+	mutation := newElementMutation(c.config, OpUpdate)
+	return &ElementUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // UpdateOne returns an update builder for the given entity.
-func (c *ObjectClient) UpdateOne(o *Object) *ObjectUpdateOne {
-	mutation := newObjectMutation(c.config, OpUpdateOne, withObject(o))
-	return &ObjectUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+func (c *ElementClient) UpdateOne(e *Element) *ElementUpdateOne {
+	mutation := newElementMutation(c.config, OpUpdateOne, withElement(e))
+	return &ElementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *ObjectClient) UpdateOneID(id int) *ObjectUpdateOne {
-	mutation := newObjectMutation(c.config, OpUpdateOne, withObjectID(id))
-	return &ObjectUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+func (c *ElementClient) UpdateOneID(id int) *ElementUpdateOne {
+	mutation := newElementMutation(c.config, OpUpdateOne, withElementID(id))
+	return &ElementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
-// Delete returns a delete builder for Object.
-func (c *ObjectClient) Delete() *ObjectDelete {
-	mutation := newObjectMutation(c.config, OpDelete)
-	return &ObjectDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Delete returns a delete builder for Element.
+func (c *ElementClient) Delete() *ElementDelete {
+	mutation := newElementMutation(c.config, OpDelete)
+	return &ElementDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // DeleteOne returns a builder for deleting the given entity.
-func (c *ObjectClient) DeleteOne(o *Object) *ObjectDeleteOne {
-	return c.DeleteOneID(o.ID)
+func (c *ElementClient) DeleteOne(e *Element) *ElementDeleteOne {
+	return c.DeleteOneID(e.ID)
 }
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *ObjectClient) DeleteOneID(id int) *ObjectDeleteOne {
-	builder := c.Delete().Where(object.ID(id))
+func (c *ElementClient) DeleteOneID(id int) *ElementDeleteOne {
+	builder := c.Delete().Where(element.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
-	return &ObjectDeleteOne{builder}
+	return &ElementDeleteOne{builder}
 }
 
-// Query returns a query builder for Object.
-func (c *ObjectClient) Query() *ObjectQuery {
-	return &ObjectQuery{
+// Query returns a query builder for Element.
+func (c *ElementClient) Query() *ElementQuery {
+	return &ElementQuery{
 		config: c.config,
-		ctx:    &QueryContext{Type: TypeObject},
+		ctx:    &QueryContext{Type: TypeElement},
 		inters: c.Interceptors(),
 	}
 }
 
-// Get returns a Object entity by its id.
-func (c *ObjectClient) Get(ctx context.Context, id int) (*Object, error) {
-	return c.Query().Where(object.ID(id)).Only(ctx)
+// Get returns a Element entity by its id.
+func (c *ElementClient) Get(ctx context.Context, id int) (*Element, error) {
+	return c.Query().Where(element.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *ObjectClient) GetX(ctx context.Context, id int) *Object {
+func (c *ElementClient) GetX(ctx context.Context, id int) *Element {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)
@@ -315,133 +305,165 @@ func (c *ObjectClient) GetX(ctx context.Context, id int) *Object {
 	return obj
 }
 
-// QueryStatement queries the statement edge of a Object.
-func (c *ObjectClient) QueryStatement(o *Object) *StatementQuery {
+// QueryStatements queries the statements edge of a Element.
+func (c *ElementClient) QueryStatements(e *Element) *StatementQuery {
 	query := (&StatementClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := o.ID
+		id := e.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(object.Table, object.FieldID, id),
+			sqlgraph.From(element.Table, element.FieldID, id),
 			sqlgraph.To(statement.Table, statement.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, object.StatementTable, object.StatementPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, element.StatementsTable, element.StatementsColumn),
 		)
-		fromV = sqlgraph.Neighbors(o.driver.Dialect(), step)
+		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryResources queries the resources edge of a Element.
+func (c *ElementClient) QueryResources(e *Element) *ResourceQuery {
+	query := (&ResourceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := e.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(element.Table, element.FieldID, id),
+			sqlgraph.To(resource.Table, resource.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, element.ResourcesTable, element.ResourcesColumn),
+		)
+		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryLocations queries the locations edge of a Element.
+func (c *ElementClient) QueryLocations(e *Element) *ResourceQuery {
+	query := (&ResourceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := e.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(element.Table, element.FieldID, id),
+			sqlgraph.To(resource.Table, resource.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, element.LocationsTable, element.LocationsColumn),
+		)
+		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
 		return fromV, nil
 	}
 	return query
 }
 
 // Hooks returns the client hooks.
-func (c *ObjectClient) Hooks() []Hook {
-	return c.hooks.Object
+func (c *ElementClient) Hooks() []Hook {
+	return c.hooks.Element
 }
 
 // Interceptors returns the client interceptors.
-func (c *ObjectClient) Interceptors() []Interceptor {
-	return c.inters.Object
+func (c *ElementClient) Interceptors() []Interceptor {
+	return c.inters.Element
 }
 
-func (c *ObjectClient) mutate(ctx context.Context, m *ObjectMutation) (Value, error) {
+func (c *ElementClient) mutate(ctx context.Context, m *ElementMutation) (Value, error) {
 	switch m.Op() {
 	case OpCreate:
-		return (&ObjectCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&ElementCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpUpdate:
-		return (&ObjectUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&ElementUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpUpdateOne:
-		return (&ObjectUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&ElementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpDelete, OpDeleteOne:
-		return (&ObjectDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+		return (&ElementDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
-		return nil, fmt.Errorf("ent: unknown Object mutation op: %q", m.Op())
+		return nil, fmt.Errorf("ent: unknown Element mutation op: %q", m.Op())
 	}
 }
 
-// SpredicateClient is a client for the Spredicate schema.
-type SpredicateClient struct {
+// ResourceClient is a client for the Resource schema.
+type ResourceClient struct {
 	config
 }
 
-// NewSpredicateClient returns a client for the Spredicate from the given config.
-func NewSpredicateClient(c config) *SpredicateClient {
-	return &SpredicateClient{config: c}
+// NewResourceClient returns a client for the Resource from the given config.
+func NewResourceClient(c config) *ResourceClient {
+	return &ResourceClient{config: c}
 }
 
 // Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `spredicate.Hooks(f(g(h())))`.
-func (c *SpredicateClient) Use(hooks ...Hook) {
-	c.hooks.Spredicate = append(c.hooks.Spredicate, hooks...)
+// A call to `Use(f, g, h)` equals to `resource.Hooks(f(g(h())))`.
+func (c *ResourceClient) Use(hooks ...Hook) {
+	c.hooks.Resource = append(c.hooks.Resource, hooks...)
 }
 
 // Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `spredicate.Intercept(f(g(h())))`.
-func (c *SpredicateClient) Intercept(interceptors ...Interceptor) {
-	c.inters.Spredicate = append(c.inters.Spredicate, interceptors...)
+// A call to `Intercept(f, g, h)` equals to `resource.Intercept(f(g(h())))`.
+func (c *ResourceClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Resource = append(c.inters.Resource, interceptors...)
 }
 
-// Create returns a builder for creating a Spredicate entity.
-func (c *SpredicateClient) Create() *SpredicateCreate {
-	mutation := newSpredicateMutation(c.config, OpCreate)
-	return &SpredicateCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Create returns a builder for creating a Resource entity.
+func (c *ResourceClient) Create() *ResourceCreate {
+	mutation := newResourceMutation(c.config, OpCreate)
+	return &ResourceCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
-// CreateBulk returns a builder for creating a bulk of Spredicate entities.
-func (c *SpredicateClient) CreateBulk(builders ...*SpredicateCreate) *SpredicateCreateBulk {
-	return &SpredicateCreateBulk{config: c.config, builders: builders}
+// CreateBulk returns a builder for creating a bulk of Resource entities.
+func (c *ResourceClient) CreateBulk(builders ...*ResourceCreate) *ResourceCreateBulk {
+	return &ResourceCreateBulk{config: c.config, builders: builders}
 }
 
-// Update returns an update builder for Spredicate.
-func (c *SpredicateClient) Update() *SpredicateUpdate {
-	mutation := newSpredicateMutation(c.config, OpUpdate)
-	return &SpredicateUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Update returns an update builder for Resource.
+func (c *ResourceClient) Update() *ResourceUpdate {
+	mutation := newResourceMutation(c.config, OpUpdate)
+	return &ResourceUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // UpdateOne returns an update builder for the given entity.
-func (c *SpredicateClient) UpdateOne(s *Spredicate) *SpredicateUpdateOne {
-	mutation := newSpredicateMutation(c.config, OpUpdateOne, withSpredicate(s))
-	return &SpredicateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+func (c *ResourceClient) UpdateOne(r *Resource) *ResourceUpdateOne {
+	mutation := newResourceMutation(c.config, OpUpdateOne, withResource(r))
+	return &ResourceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *SpredicateClient) UpdateOneID(id int) *SpredicateUpdateOne {
-	mutation := newSpredicateMutation(c.config, OpUpdateOne, withSpredicateID(id))
-	return &SpredicateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+func (c *ResourceClient) UpdateOneID(id int) *ResourceUpdateOne {
+	mutation := newResourceMutation(c.config, OpUpdateOne, withResourceID(id))
+	return &ResourceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
-// Delete returns a delete builder for Spredicate.
-func (c *SpredicateClient) Delete() *SpredicateDelete {
-	mutation := newSpredicateMutation(c.config, OpDelete)
-	return &SpredicateDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Delete returns a delete builder for Resource.
+func (c *ResourceClient) Delete() *ResourceDelete {
+	mutation := newResourceMutation(c.config, OpDelete)
+	return &ResourceDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // DeleteOne returns a builder for deleting the given entity.
-func (c *SpredicateClient) DeleteOne(s *Spredicate) *SpredicateDeleteOne {
-	return c.DeleteOneID(s.ID)
+func (c *ResourceClient) DeleteOne(r *Resource) *ResourceDeleteOne {
+	return c.DeleteOneID(r.ID)
 }
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *SpredicateClient) DeleteOneID(id int) *SpredicateDeleteOne {
-	builder := c.Delete().Where(spredicate.ID(id))
+func (c *ResourceClient) DeleteOneID(id int) *ResourceDeleteOne {
+	builder := c.Delete().Where(resource.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
-	return &SpredicateDeleteOne{builder}
+	return &ResourceDeleteOne{builder}
 }
 
-// Query returns a query builder for Spredicate.
-func (c *SpredicateClient) Query() *SpredicateQuery {
-	return &SpredicateQuery{
+// Query returns a query builder for Resource.
+func (c *ResourceClient) Query() *ResourceQuery {
+	return &ResourceQuery{
 		config: c.config,
-		ctx:    &QueryContext{Type: TypeSpredicate},
+		ctx:    &QueryContext{Type: TypeResource},
 		inters: c.Interceptors(),
 	}
 }
 
-// Get returns a Spredicate entity by its id.
-func (c *SpredicateClient) Get(ctx context.Context, id int) (*Spredicate, error) {
-	return c.Query().Where(spredicate.ID(id)).Only(ctx)
+// Get returns a Resource entity by its id.
+func (c *ResourceClient) Get(ctx context.Context, id int) (*Resource, error) {
+	return c.Query().Where(resource.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *SpredicateClient) GetX(ctx context.Context, id int) *Spredicate {
+func (c *ResourceClient) GetX(ctx context.Context, id int) *Resource {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)
@@ -449,44 +471,44 @@ func (c *SpredicateClient) GetX(ctx context.Context, id int) *Spredicate {
 	return obj
 }
 
-// QueryStatement queries the statement edge of a Spredicate.
-func (c *SpredicateClient) QueryStatement(s *Spredicate) *StatementQuery {
-	query := (&StatementClient{config: c.config}).Query()
+// QueryElements queries the elements edge of a Resource.
+func (c *ResourceClient) QueryElements(r *Resource) *ElementQuery {
+	query := (&ElementClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := s.ID
+		id := r.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(spredicate.Table, spredicate.FieldID, id),
-			sqlgraph.To(statement.Table, statement.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, spredicate.StatementTable, spredicate.StatementPrimaryKey...),
+			sqlgraph.From(resource.Table, resource.FieldID, id),
+			sqlgraph.To(element.Table, element.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, resource.ElementsTable, resource.ElementsColumn),
 		)
-		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
+		fromV = sqlgraph.Neighbors(r.driver.Dialect(), step)
 		return fromV, nil
 	}
 	return query
 }
 
 // Hooks returns the client hooks.
-func (c *SpredicateClient) Hooks() []Hook {
-	return c.hooks.Spredicate
+func (c *ResourceClient) Hooks() []Hook {
+	return c.hooks.Resource
 }
 
 // Interceptors returns the client interceptors.
-func (c *SpredicateClient) Interceptors() []Interceptor {
-	return c.inters.Spredicate
+func (c *ResourceClient) Interceptors() []Interceptor {
+	return c.inters.Resource
 }
 
-func (c *SpredicateClient) mutate(ctx context.Context, m *SpredicateMutation) (Value, error) {
+func (c *ResourceClient) mutate(ctx context.Context, m *ResourceMutation) (Value, error) {
 	switch m.Op() {
 	case OpCreate:
-		return (&SpredicateCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&ResourceCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpUpdate:
-		return (&SpredicateUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&ResourceUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpUpdateOne:
-		return (&SpredicateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&ResourceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpDelete, OpDeleteOne:
-		return (&SpredicateDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+		return (&ResourceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
-		return nil, fmt.Errorf("ent: unknown Spredicate mutation op: %q", m.Op())
+		return nil, fmt.Errorf("ent: unknown Resource mutation op: %q", m.Op())
 	}
 }
 
@@ -584,14 +606,14 @@ func (c *StatementClient) GetX(ctx context.Context, id int) *Statement {
 }
 
 // QueryObjects queries the objects edge of a Statement.
-func (c *StatementClient) QueryObjects(s *Statement) *ObjectQuery {
-	query := (&ObjectClient{config: c.config}).Query()
+func (c *StatementClient) QueryObjects(s *Statement) *ElementQuery {
+	query := (&ElementClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := s.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(statement.Table, statement.FieldID, id),
-			sqlgraph.To(object.Table, object.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, statement.ObjectsTable, statement.ObjectsPrimaryKey...),
+			sqlgraph.To(element.Table, element.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, statement.ObjectsTable, statement.ObjectsColumn),
 		)
 		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
 		return fromV, nil
@@ -600,14 +622,14 @@ func (c *StatementClient) QueryObjects(s *Statement) *ObjectQuery {
 }
 
 // QueryPredicates queries the predicates edge of a Statement.
-func (c *StatementClient) QueryPredicates(s *Statement) *SpredicateQuery {
-	query := (&SpredicateClient{config: c.config}).Query()
+func (c *StatementClient) QueryPredicates(s *Statement) *ElementQuery {
+	query := (&ElementClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := s.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(statement.Table, statement.FieldID, id),
-			sqlgraph.To(spredicate.Table, spredicate.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, statement.PredicatesTable, statement.PredicatesPrimaryKey...),
+			sqlgraph.To(element.Table, element.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, statement.PredicatesTable, statement.PredicatesColumn),
 		)
 		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
 		return fromV, nil
@@ -616,14 +638,30 @@ func (c *StatementClient) QueryPredicates(s *Statement) *SpredicateQuery {
 }
 
 // QuerySubjects queries the subjects edge of a Statement.
-func (c *StatementClient) QuerySubjects(s *Statement) *SubjectQuery {
-	query := (&SubjectClient{config: c.config}).Query()
+func (c *StatementClient) QuerySubjects(s *Statement) *ElementQuery {
+	query := (&ElementClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := s.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(statement.Table, statement.FieldID, id),
-			sqlgraph.To(subject.Table, subject.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, statement.SubjectsTable, statement.SubjectsPrimaryKey...),
+			sqlgraph.To(element.Table, element.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, statement.SubjectsTable, statement.SubjectsColumn),
+		)
+		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryStatements queries the statements edge of a Statement.
+func (c *StatementClient) QueryStatements(s *Statement) *ElementQuery {
+	query := (&ElementClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := s.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(statement.Table, statement.FieldID, id),
+			sqlgraph.To(element.Table, element.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, statement.StatementsTable, statement.StatementsColumn),
 		)
 		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
 		return fromV, nil
@@ -656,147 +694,13 @@ func (c *StatementClient) mutate(ctx context.Context, m *StatementMutation) (Val
 	}
 }
 
-// SubjectClient is a client for the Subject schema.
-type SubjectClient struct {
-	config
-}
-
-// NewSubjectClient returns a client for the Subject from the given config.
-func NewSubjectClient(c config) *SubjectClient {
-	return &SubjectClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `subject.Hooks(f(g(h())))`.
-func (c *SubjectClient) Use(hooks ...Hook) {
-	c.hooks.Subject = append(c.hooks.Subject, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `subject.Intercept(f(g(h())))`.
-func (c *SubjectClient) Intercept(interceptors ...Interceptor) {
-	c.inters.Subject = append(c.inters.Subject, interceptors...)
-}
-
-// Create returns a builder for creating a Subject entity.
-func (c *SubjectClient) Create() *SubjectCreate {
-	mutation := newSubjectMutation(c.config, OpCreate)
-	return &SubjectCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of Subject entities.
-func (c *SubjectClient) CreateBulk(builders ...*SubjectCreate) *SubjectCreateBulk {
-	return &SubjectCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for Subject.
-func (c *SubjectClient) Update() *SubjectUpdate {
-	mutation := newSubjectMutation(c.config, OpUpdate)
-	return &SubjectUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *SubjectClient) UpdateOne(s *Subject) *SubjectUpdateOne {
-	mutation := newSubjectMutation(c.config, OpUpdateOne, withSubject(s))
-	return &SubjectUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *SubjectClient) UpdateOneID(id int) *SubjectUpdateOne {
-	mutation := newSubjectMutation(c.config, OpUpdateOne, withSubjectID(id))
-	return &SubjectUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for Subject.
-func (c *SubjectClient) Delete() *SubjectDelete {
-	mutation := newSubjectMutation(c.config, OpDelete)
-	return &SubjectDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *SubjectClient) DeleteOne(s *Subject) *SubjectDeleteOne {
-	return c.DeleteOneID(s.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *SubjectClient) DeleteOneID(id int) *SubjectDeleteOne {
-	builder := c.Delete().Where(subject.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &SubjectDeleteOne{builder}
-}
-
-// Query returns a query builder for Subject.
-func (c *SubjectClient) Query() *SubjectQuery {
-	return &SubjectQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeSubject},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a Subject entity by its id.
-func (c *SubjectClient) Get(ctx context.Context, id int) (*Subject, error) {
-	return c.Query().Where(subject.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *SubjectClient) GetX(ctx context.Context, id int) *Subject {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// QueryStatement queries the statement edge of a Subject.
-func (c *SubjectClient) QueryStatement(s *Subject) *StatementQuery {
-	query := (&StatementClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := s.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(subject.Table, subject.FieldID, id),
-			sqlgraph.To(statement.Table, statement.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, subject.StatementTable, subject.StatementPrimaryKey...),
-		)
-		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// Hooks returns the client hooks.
-func (c *SubjectClient) Hooks() []Hook {
-	return c.hooks.Subject
-}
-
-// Interceptors returns the client interceptors.
-func (c *SubjectClient) Interceptors() []Interceptor {
-	return c.inters.Subject
-}
-
-func (c *SubjectClient) mutate(ctx context.Context, m *SubjectMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&SubjectCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&SubjectUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&SubjectUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&SubjectDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown Subject mutation op: %q", m.Op())
-	}
-}
-
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Object, Spredicate, Statement, Subject []ent.Hook
+		Element, Resource, Statement []ent.Hook
 	}
 	inters struct {
-		Object, Spredicate, Statement, Subject []ent.Interceptor
+		Element, Resource, Statement []ent.Interceptor
 	}
 )
 

@@ -1,8 +1,6 @@
 # schema tells gqlgen where the GraphQL schema is located.
 schema:
-  - ent.graphql
-  - entz.graphql
-
+  - ents.graphql
 # resolver reports where the resolver implementations go.
 resolver:
   layout: follow-schema
@@ -15,7 +13,6 @@ resolver:
 # provided package. If they match it will use them, otherwise it will generate new.
 autobind:
   - zotregistry.io/zot/ent
-  - zotregistry.io/zot/pkg/search/schema
   - zotregistry.io/zot/ent/schema
   - zotregistry.io/zot
 

@@ -1,0 +1,33 @@
+{
+    "schemaVersion": 99,
+    "resType": "uor_statement",
+    "subject":{
+        "resourceType": "oci_descriptor",
+        "locatorType": "oci_namespace",
+        "location":{
+            "namespace": "hello/test3"
+        },
+        "resource":{
+
+        }
+    },
+    "predicate":{
+        "locatorType": "oci_namespace",
+        "resourceType": "oci_descriptor",
+        "location":{
+            "namespace": "hello/test2"
+        },
+        "resource":{
+            
+        }
+    },
+    "object":{
+        "locatorType": "oci_namespace",
+        "resourceType": "oci_descriptor",
+        "location":{
+            "namespace": "hello/test1"
+        },
+        "resource":{
+        }
+    }
+}

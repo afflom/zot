@@ -1,6 +1,7 @@
 package types
 
 import (
+	"database/sql"
 	"io"
 	"time"
 
@@ -8,7 +9,6 @@ import (
 	ispec "github.com/opencontainers/image-spec/specs-go/v1"
 	artifactspec "github.com/oras-project/artifacts-spec/specs-go/v1"
 
-	"zotregistry.io/zot/ent"
 	"zotregistry.io/zot/pkg/scheduler"
 )
 
@@ -53,7 +53,7 @@ type ImageStore interface { //nolint:interfacebloat
 	RunDedupeBlobs(interval time.Duration, sch *scheduler.Scheduler)
 	RunDedupeForDigest(digest godigest.Digest, dedupe bool, duplicateBlobs []string) error
 	GetNextDigestWithBlobPaths(lastDigests []godigest.Digest) (godigest.Digest, []string, error)
-	AddToIndex(repo string, descriptor ispec.Descriptor, manifest ispec.Manifest, eclient *ent.Client) error
+	AddToIndex(repo string, descriptor ispec.Descriptor, manifest ispec.Manifest, eclient *sql.DB) error
 	GetStatementDescriptor(repo string, digest godigest.Digest) ([]byte, error)
-	InitDatabase() (*ent.Client, error)
+	InitDatabase() (*sql.DB, error)
 }

@@ -7,54 +7,77 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/99designs/gqlgen/graphql"
-	"zotregistry.io/zot/ent/object"
-	"zotregistry.io/zot/ent/spredicate"
+	"zotregistry.io/zot/ent/element"
+	"zotregistry.io/zot/ent/resource"
 	"zotregistry.io/zot/ent/statement"
-	"zotregistry.io/zot/ent/subject"
 )
 
 // CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
-func (o *ObjectQuery) CollectFields(ctx context.Context, satisfies ...string) (*ObjectQuery, error) {
+func (e *ElementQuery) CollectFields(ctx context.Context, satisfies ...string) (*ElementQuery, error) {
 	fc := graphql.GetFieldContext(ctx)
 	if fc == nil {
-		return o, nil
+		return e, nil
 	}
-	if err := o.collectField(ctx, graphql.GetOperationContext(ctx), fc.Field, nil, satisfies...); err != nil {
+	if err := e.collectField(ctx, graphql.GetOperationContext(ctx), fc.Field, nil, satisfies...); err != nil {
 		return nil, err
 	}
-	return o, nil
+	return e, nil
 }
 
-func (o *ObjectQuery) collectField(ctx context.Context, opCtx *graphql.OperationContext, collected graphql.CollectedField, path []string, satisfies ...string) error {
+func (e *ElementQuery) collectField(ctx context.Context, opCtx *graphql.OperationContext, collected graphql.CollectedField, path []string, satisfies ...string) error {
 	path = append([]string(nil), path...)
 	var (
 		unknownSeen    bool
-		fieldSeen      = make(map[string]struct{}, len(object.Columns))
-		selectedFields = []string{object.FieldID}
+		fieldSeen      = make(map[string]struct{}, len(element.Columns))
+		selectedFields = []string{element.FieldID}
 	)
 	for _, field := range graphql.CollectFields(opCtx, collected.Selections, satisfies) {
 		switch field.Name {
-		case "statement":
+		case "statements":
 			var (
 				alias = field.Alias
 				path  = append(path, alias)
-				query = (&StatementClient{config: o.config}).Query()
+				query = (&StatementClient{config: e.config}).Query()
 			)
 			if err := query.collectField(ctx, opCtx, field, path, mayAddCondition(satisfies, statementImplementors)...); err != nil {
 				return err
 			}
-			o.WithNamedStatement(alias, func(wq *StatementQuery) {
+			e.WithNamedStatements(alias, func(wq *StatementQuery) {
 				*wq = *query
 			})
-		case "objecttype":
-			if _, ok := fieldSeen[object.FieldObjectType]; !ok {
-				selectedFields = append(selectedFields, object.FieldObjectType)
-				fieldSeen[object.FieldObjectType] = struct{}{}
+		case "resources":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&ResourceClient{config: e.config}).Query()
+			)
+			if err := query.collectField(ctx, opCtx, field, path, mayAddCondition(satisfies, resourceImplementors)...); err != nil {
+				return err
 			}
-		case "object":
-			if _, ok := fieldSeen[object.FieldObject]; !ok {
-				selectedFields = append(selectedFields, object.FieldObject)
-				fieldSeen[object.FieldObject] = struct{}{}
+			e.WithNamedResources(alias, func(wq *ResourceQuery) {
+				*wq = *query
+			})
+		case "locations":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&ResourceClient{config: e.config}).Query()
+			)
+			if err := query.collectField(ctx, opCtx, field, path, mayAddCondition(satisfies, resourceImplementors)...); err != nil {
+				return err
+			}
+			e.WithNamedLocations(alias, func(wq *ResourceQuery) {
+				*wq = *query
+			})
+		case "resourcetype":
+			if _, ok := fieldSeen[element.FieldResourceType]; !ok {
+				selectedFields = append(selectedFields, element.FieldResourceType)
+				fieldSeen[element.FieldResourceType] = struct{}{}
+			}
+		case "locatortype":
+			if _, ok := fieldSeen[element.FieldLocatorType]; !ok {
+				selectedFields = append(selectedFields, element.FieldLocatorType)
+				fieldSeen[element.FieldLocatorType] = struct{}{}
 			}
 		case "id":
 		case "__typename":
@@ -63,19 +86,19 @@ func (o *ObjectQuery) collectField(ctx context.Context, opCtx *graphql.Operation
 		}
 	}
 	if !unknownSeen {
-		o.Select(selectedFields...)
+		e.Select(selectedFields...)
 	}
 	return nil
 }
 
-type objectPaginateArgs struct {
+type elementPaginateArgs struct {
 	first, last   *int
 	after, before *Cursor
-	opts          []ObjectPaginateOption
+	opts          []ElementPaginateOption
 }
 
-func newObjectPaginateArgs(rv map[string]any) *objectPaginateArgs {
-	args := &objectPaginateArgs{}
+func newElementPaginateArgs(rv map[string]any) *elementPaginateArgs {
+	args := &elementPaginateArgs{}
 	if rv == nil {
 		return args
 	}
@@ -91,54 +114,49 @@ func newObjectPaginateArgs(rv map[string]any) *objectPaginateArgs {
 	if v := rv[beforeField]; v != nil {
 		args.before = v.(*Cursor)
 	}
-	if v, ok := rv[whereField].(*ObjectWhereInput); ok {
-		args.opts = append(args.opts, WithObjectFilter(v.Filter))
+	if v, ok := rv[whereField].(*ElementWhereInput); ok {
+		args.opts = append(args.opts, WithElementFilter(v.Filter))
 	}
 	return args
 }
 
 // CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
-func (s *SpredicateQuery) CollectFields(ctx context.Context, satisfies ...string) (*SpredicateQuery, error) {
+func (r *ResourceQuery) CollectFields(ctx context.Context, satisfies ...string) (*ResourceQuery, error) {
 	fc := graphql.GetFieldContext(ctx)
 	if fc == nil {
-		return s, nil
+		return r, nil
 	}
-	if err := s.collectField(ctx, graphql.GetOperationContext(ctx), fc.Field, nil, satisfies...); err != nil {
+	if err := r.collectField(ctx, graphql.GetOperationContext(ctx), fc.Field, nil, satisfies...); err != nil {
 		return nil, err
 	}
-	return s, nil
+	return r, nil
 }
 
-func (s *SpredicateQuery) collectField(ctx context.Context, opCtx *graphql.OperationContext, collected graphql.CollectedField, path []string, satisfies ...string) error {
+func (r *ResourceQuery) collectField(ctx context.Context, opCtx *graphql.OperationContext, collected graphql.CollectedField, path []string, satisfies ...string) error {
 	path = append([]string(nil), path...)
 	var (
 		unknownSeen    bool
-		fieldSeen      = make(map[string]struct{}, len(spredicate.Columns))
-		selectedFields = []string{spredicate.FieldID}
+		fieldSeen      = make(map[string]struct{}, len(resource.Columns))
+		selectedFields = []string{resource.FieldID}
 	)
 	for _, field := range graphql.CollectFields(opCtx, collected.Selections, satisfies) {
 		switch field.Name {
-		case "statement":
+		case "elements":
 			var (
 				alias = field.Alias
 				path  = append(path, alias)
-				query = (&StatementClient{config: s.config}).Query()
+				query = (&ElementClient{config: r.config}).Query()
 			)
-			if err := query.collectField(ctx, opCtx, field, path, mayAddCondition(satisfies, statementImplementors)...); err != nil {
+			if err := query.collectField(ctx, opCtx, field, path, mayAddCondition(satisfies, elementImplementors)...); err != nil {
 				return err
 			}
-			s.WithNamedStatement(alias, func(wq *StatementQuery) {
+			r.WithNamedElements(alias, func(wq *ElementQuery) {
 				*wq = *query
 			})
-		case "predicatetype":
-			if _, ok := fieldSeen[spredicate.FieldPredicateType]; !ok {
-				selectedFields = append(selectedFields, spredicate.FieldPredicateType)
-				fieldSeen[spredicate.FieldPredicateType] = struct{}{}
-			}
-		case "predicate":
-			if _, ok := fieldSeen[spredicate.FieldPredicate]; !ok {
-				selectedFields = append(selectedFields, spredicate.FieldPredicate)
-				fieldSeen[spredicate.FieldPredicate] = struct{}{}
+		case "message":
+			if _, ok := fieldSeen[resource.FieldMessage]; !ok {
+				selectedFields = append(selectedFields, resource.FieldMessage)
+				fieldSeen[resource.FieldMessage] = struct{}{}
 			}
 		case "id":
 		case "__typename":
@@ -147,19 +165,19 @@ func (s *SpredicateQuery) collectField(ctx context.Context, opCtx *graphql.Opera
 		}
 	}
 	if !unknownSeen {
-		s.Select(selectedFields...)
+		r.Select(selectedFields...)
 	}
 	return nil
 }
 
-type spredicatePaginateArgs struct {
+type resourcePaginateArgs struct {
 	first, last   *int
 	after, before *Cursor
-	opts          []SpredicatePaginateOption
+	opts          []ResourcePaginateOption
 }
 
-func newSpredicatePaginateArgs(rv map[string]any) *spredicatePaginateArgs {
-	args := &spredicatePaginateArgs{}
+func newResourcePaginateArgs(rv map[string]any) *resourcePaginateArgs {
+	args := &resourcePaginateArgs{}
 	if rv == nil {
 		return args
 	}
@@ -175,8 +193,8 @@ func newSpredicatePaginateArgs(rv map[string]any) *spredicatePaginateArgs {
 	if v := rv[beforeField]; v != nil {
 		args.before = v.(*Cursor)
 	}
-	if v, ok := rv[whereField].(*SpredicateWhereInput); ok {
-		args.opts = append(args.opts, WithSpredicateFilter(v.Filter))
+	if v, ok := rv[whereField].(*ResourceWhereInput); ok {
+		args.opts = append(args.opts, WithResourceFilter(v.Filter))
 	}
 	return args
 }
@@ -206,47 +224,54 @@ func (s *StatementQuery) collectField(ctx context.Context, opCtx *graphql.Operat
 			var (
 				alias = field.Alias
 				path  = append(path, alias)
-				query = (&ObjectClient{config: s.config}).Query()
+				query = (&ElementClient{config: s.config}).Query()
 			)
-			if err := query.collectField(ctx, opCtx, field, path, mayAddCondition(satisfies, objectImplementors)...); err != nil {
+			if err := query.collectField(ctx, opCtx, field, path, mayAddCondition(satisfies, elementImplementors)...); err != nil {
 				return err
 			}
-			s.WithNamedObjects(alias, func(wq *ObjectQuery) {
+			s.WithNamedObjects(alias, func(wq *ElementQuery) {
 				*wq = *query
 			})
 		case "predicates":
 			var (
 				alias = field.Alias
 				path  = append(path, alias)
-				query = (&SpredicateClient{config: s.config}).Query()
+				query = (&ElementClient{config: s.config}).Query()
 			)
-			if err := query.collectField(ctx, opCtx, field, path, mayAddCondition(satisfies, spredicateImplementors)...); err != nil {
+			if err := query.collectField(ctx, opCtx, field, path, mayAddCondition(satisfies, elementImplementors)...); err != nil {
 				return err
 			}
-			s.WithNamedPredicates(alias, func(wq *SpredicateQuery) {
+			s.WithNamedPredicates(alias, func(wq *ElementQuery) {
 				*wq = *query
 			})
 		case "subjects":
 			var (
 				alias = field.Alias
 				path  = append(path, alias)
-				query = (&SubjectClient{config: s.config}).Query()
+				query = (&ElementClient{config: s.config}).Query()
 			)
-			if err := query.collectField(ctx, opCtx, field, path, mayAddCondition(satisfies, subjectImplementors)...); err != nil {
+			if err := query.collectField(ctx, opCtx, field, path, mayAddCondition(satisfies, elementImplementors)...); err != nil {
 				return err
 			}
-			s.WithNamedSubjects(alias, func(wq *SubjectQuery) {
+			s.WithNamedSubjects(alias, func(wq *ElementQuery) {
 				*wq = *query
 			})
-		case "namespace":
-			if _, ok := fieldSeen[statement.FieldNamespace]; !ok {
-				selectedFields = append(selectedFields, statement.FieldNamespace)
-				fieldSeen[statement.FieldNamespace] = struct{}{}
+		case "statements":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = (&ElementClient{config: s.config}).Query()
+			)
+			if err := query.collectField(ctx, opCtx, field, path, mayAddCondition(satisfies, elementImplementors)...); err != nil {
+				return err
 			}
-		case "statement":
-			if _, ok := fieldSeen[statement.FieldStatement]; !ok {
-				selectedFields = append(selectedFields, statement.FieldStatement)
-				fieldSeen[statement.FieldStatement] = struct{}{}
+			s.WithNamedStatements(alias, func(wq *ElementQuery) {
+				*wq = *query
+			})
+		case "mediatype":
+			if _, ok := fieldSeen[statement.FieldMediaType]; !ok {
+				selectedFields = append(selectedFields, statement.FieldMediaType)
+				fieldSeen[statement.FieldMediaType] = struct{}{}
 			}
 		case "id":
 		case "__typename":
@@ -285,90 +310,6 @@ func newStatementPaginateArgs(rv map[string]any) *statementPaginateArgs {
 	}
 	if v, ok := rv[whereField].(*StatementWhereInput); ok {
 		args.opts = append(args.opts, WithStatementFilter(v.Filter))
-	}
-	return args
-}
-
-// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
-func (s *SubjectQuery) CollectFields(ctx context.Context, satisfies ...string) (*SubjectQuery, error) {
-	fc := graphql.GetFieldContext(ctx)
-	if fc == nil {
-		return s, nil
-	}
-	if err := s.collectField(ctx, graphql.GetOperationContext(ctx), fc.Field, nil, satisfies...); err != nil {
-		return nil, err
-	}
-	return s, nil
-}
-
-func (s *SubjectQuery) collectField(ctx context.Context, opCtx *graphql.OperationContext, collected graphql.CollectedField, path []string, satisfies ...string) error {
-	path = append([]string(nil), path...)
-	var (
-		unknownSeen    bool
-		fieldSeen      = make(map[string]struct{}, len(subject.Columns))
-		selectedFields = []string{subject.FieldID}
-	)
-	for _, field := range graphql.CollectFields(opCtx, collected.Selections, satisfies) {
-		switch field.Name {
-		case "statement":
-			var (
-				alias = field.Alias
-				path  = append(path, alias)
-				query = (&StatementClient{config: s.config}).Query()
-			)
-			if err := query.collectField(ctx, opCtx, field, path, mayAddCondition(satisfies, statementImplementors)...); err != nil {
-				return err
-			}
-			s.WithNamedStatement(alias, func(wq *StatementQuery) {
-				*wq = *query
-			})
-		case "subjecttype":
-			if _, ok := fieldSeen[subject.FieldSubjectType]; !ok {
-				selectedFields = append(selectedFields, subject.FieldSubjectType)
-				fieldSeen[subject.FieldSubjectType] = struct{}{}
-			}
-		case "subject":
-			if _, ok := fieldSeen[subject.FieldSubject]; !ok {
-				selectedFields = append(selectedFields, subject.FieldSubject)
-				fieldSeen[subject.FieldSubject] = struct{}{}
-			}
-		case "id":
-		case "__typename":
-		default:
-			unknownSeen = true
-		}
-	}
-	if !unknownSeen {
-		s.Select(selectedFields...)
-	}
-	return nil
-}
-
-type subjectPaginateArgs struct {
-	first, last   *int
-	after, before *Cursor
-	opts          []SubjectPaginateOption
-}
-
-func newSubjectPaginateArgs(rv map[string]any) *subjectPaginateArgs {
-	args := &subjectPaginateArgs{}
-	if rv == nil {
-		return args
-	}
-	if v := rv[firstField]; v != nil {
-		args.first = v.(*int)
-	}
-	if v := rv[lastField]; v != nil {
-		args.last = v.(*int)
-	}
-	if v := rv[afterField]; v != nil {
-		args.after = v.(*Cursor)
-	}
-	if v := rv[beforeField]; v != nil {
-		args.before = v.(*Cursor)
-	}
-	if v, ok := rv[whereField].(*SubjectWhereInput); ok {
-		args.opts = append(args.opts, WithSubjectFilter(v.Filter))
 	}
 	return args
 }

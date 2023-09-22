@@ -20,8 +20,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/google/go-github/v52/github"
 	"github.com/gorilla/mux"
 	"github.com/opencontainers/distribution-spec/specs-go/v1/extensions"
@@ -31,7 +29,6 @@ import (
 	"github.com/zitadel/oidc/pkg/client/rp"
 	"github.com/zitadel/oidc/pkg/oidc"
 
-	zroot "zotregistry.io/zot"
 	zerr "zotregistry.io/zot/errors"
 	"zotregistry.io/zot/pkg/api/config"
 	"zotregistry.io/zot/pkg/api/constants"
@@ -160,15 +157,15 @@ func (rh *RouteHandler) SetupRoutes() {
 
 	// swagger
 	debug.SetupSwaggerRoutes(rh.c.Config, rh.c.Router, authHandler, rh.c.Log)
+	/*
+		serve := handler.NewDefaultServer(zroot.NewSchema(rh.c.EntClient))
 
-	serve := handler.NewDefaultServer(zroot.NewSchema(rh.c.EntClient))
-
-	fmt.Printf("entclient: %v", rh.c.EntClient)
-	rh.c.Router.Handle("/poc",
-		playground.Handler("Zot", "/query"),
-	)
-	rh.c.Router.Handle("/query", rh.c.GraphQLAuthzMiddleware(serve)) // Wrap the serve handler with the middleware
-
+		fmt.Printf("entclient: %v", rh.c.EntClient)
+		rh.c.Router.Handle("/poc",
+			playground.Handler("Zot", "/query"),
+		)
+		rh.c.Router.Handle("/query", rh.c.GraphQLAuthzMiddleware(serve)) // Wrap the serve handler with the middleware
+	*/
 	// Setup Extensions Routes
 	if rh.c.Config != nil {
 		if rh.c.Config.Extensions == nil {

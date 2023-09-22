@@ -15,10 +15,9 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/hashicorp/go-multierror"
 	"golang.org/x/sync/semaphore"
-	"zotregistry.io/zot/ent/object"
-	"zotregistry.io/zot/ent/spredicate"
+	"zotregistry.io/zot/ent/element"
+	"zotregistry.io/zot/ent/resource"
 	"zotregistry.io/zot/ent/statement"
-	"zotregistry.io/zot/ent/subject"
 )
 
 // Noder wraps the basic Node method.
@@ -26,25 +25,20 @@ type Noder interface {
 	IsNode()
 }
 
-var objectImplementors = []string{"Object", "Node"}
+var elementImplementors = []string{"Element", "Node"}
 
 // IsNode implements the Node interface check for GQLGen.
-func (*Object) IsNode() {}
+func (*Element) IsNode() {}
 
-var spredicateImplementors = []string{"Spredicate", "Node"}
+var resourceImplementors = []string{"Resource", "Node"}
 
 // IsNode implements the Node interface check for GQLGen.
-func (*Spredicate) IsNode() {}
+func (*Resource) IsNode() {}
 
 var statementImplementors = []string{"Statement", "Node"}
 
 // IsNode implements the Node interface check for GQLGen.
 func (*Statement) IsNode() {}
-
-var subjectImplementors = []string{"Subject", "Node"}
-
-// IsNode implements the Node interface check for GQLGen.
-func (*Subject) IsNode() {}
 
 var errNodeInvalidID = &NotFoundError{"node"}
 
@@ -104,10 +98,10 @@ func (c *Client) Noder(ctx context.Context, id int, opts ...NodeOption) (_ Noder
 
 func (c *Client) noder(ctx context.Context, table string, id int) (Noder, error) {
 	switch table {
-	case object.Table:
-		query := c.Object.Query().
-			Where(object.ID(id))
-		query, err := query.CollectFields(ctx, objectImplementors...)
+	case element.Table:
+		query := c.Element.Query().
+			Where(element.ID(id))
+		query, err := query.CollectFields(ctx, elementImplementors...)
 		if err != nil {
 			return nil, err
 		}
@@ -116,10 +110,10 @@ func (c *Client) noder(ctx context.Context, table string, id int) (Noder, error)
 			return nil, err
 		}
 		return n, nil
-	case spredicate.Table:
-		query := c.Spredicate.Query().
-			Where(spredicate.ID(id))
-		query, err := query.CollectFields(ctx, spredicateImplementors...)
+	case resource.Table:
+		query := c.Resource.Query().
+			Where(resource.ID(id))
+		query, err := query.CollectFields(ctx, resourceImplementors...)
 		if err != nil {
 			return nil, err
 		}
@@ -132,18 +126,6 @@ func (c *Client) noder(ctx context.Context, table string, id int) (Noder, error)
 		query := c.Statement.Query().
 			Where(statement.ID(id))
 		query, err := query.CollectFields(ctx, statementImplementors...)
-		if err != nil {
-			return nil, err
-		}
-		n, err := query.Only(ctx)
-		if err != nil {
-			return nil, err
-		}
-		return n, nil
-	case subject.Table:
-		query := c.Subject.Query().
-			Where(subject.ID(id))
-		query, err := query.CollectFields(ctx, subjectImplementors...)
 		if err != nil {
 			return nil, err
 		}
@@ -225,10 +207,10 @@ func (c *Client) noders(ctx context.Context, table string, ids []int) ([]Noder, 
 		idmap[id] = append(idmap[id], &noders[i])
 	}
 	switch table {
-	case object.Table:
-		query := c.Object.Query().
-			Where(object.IDIn(ids...))
-		query, err := query.CollectFields(ctx, objectImplementors...)
+	case element.Table:
+		query := c.Element.Query().
+			Where(element.IDIn(ids...))
+		query, err := query.CollectFields(ctx, elementImplementors...)
 		if err != nil {
 			return nil, err
 		}
@@ -241,10 +223,10 @@ func (c *Client) noders(ctx context.Context, table string, ids []int) ([]Noder, 
 				*noder = node
 			}
 		}
-	case spredicate.Table:
-		query := c.Spredicate.Query().
-			Where(spredicate.IDIn(ids...))
-		query, err := query.CollectFields(ctx, spredicateImplementors...)
+	case resource.Table:
+		query := c.Resource.Query().
+			Where(resource.IDIn(ids...))
+		query, err := query.CollectFields(ctx, resourceImplementors...)
 		if err != nil {
 			return nil, err
 		}
@@ -261,22 +243,6 @@ func (c *Client) noders(ctx context.Context, table string, ids []int) ([]Noder, 
 		query := c.Statement.Query().
 			Where(statement.IDIn(ids...))
 		query, err := query.CollectFields(ctx, statementImplementors...)
-		if err != nil {
-			return nil, err
-		}
-		nodes, err := query.All(ctx)
-		if err != nil {
-			return nil, err
-		}
-		for _, node := range nodes {
-			for _, noder := range idmap[node.ID] {
-				*noder = node
-			}
-		}
-	case subject.Table:
-		query := c.Subject.Query().
-			Where(subject.IDIn(ids...))
-		query, err := query.CollectFields(ctx, subjectImplementors...)
 		if err != nil {
 			return nil, err
 		}

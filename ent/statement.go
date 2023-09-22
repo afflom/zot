@@ -3,7 +3,6 @@
 package ent
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -17,38 +16,40 @@ type Statement struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
-	// Namespace holds the value of the "namespace" field.
-	Namespace string `json:"namespace,omitempty"`
-	// Statement holds the value of the "statement" field.
-	Statement map[string]interface{} `json:"statement,omitempty"`
+	// MediaType holds the value of the "mediaType" field.
+	MediaType string `json:"mediaType,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the StatementQuery when eager-loading is set.
-	Edges        StatementEdges `json:"edges"`
-	selectValues sql.SelectValues
+	Edges              StatementEdges `json:"edges"`
+	element_statements *int
+	selectValues       sql.SelectValues
 }
 
 // StatementEdges holds the relations/edges for other nodes in the graph.
 type StatementEdges struct {
 	// Objects holds the value of the objects edge.
-	Objects []*Object `json:"objects,omitempty"`
+	Objects []*Element `json:"objects,omitempty"`
 	// Predicates holds the value of the predicates edge.
-	Predicates []*Spredicate `json:"predicates,omitempty"`
+	Predicates []*Element `json:"predicates,omitempty"`
 	// Subjects holds the value of the subjects edge.
-	Subjects []*Subject `json:"subjects,omitempty"`
+	Subjects []*Element `json:"subjects,omitempty"`
+	// Statements holds the value of the statements edge.
+	Statements []*Element `json:"statements,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 	// totalCount holds the count of the edges above.
-	totalCount [3]map[string]int
+	totalCount [4]map[string]int
 
-	namedObjects    map[string][]*Object
-	namedPredicates map[string][]*Spredicate
-	namedSubjects   map[string][]*Subject
+	namedObjects    map[string][]*Element
+	namedPredicates map[string][]*Element
+	namedSubjects   map[string][]*Element
+	namedStatements map[string][]*Element
 }
 
 // ObjectsOrErr returns the Objects value or an error if the edge
 // was not loaded in eager-loading.
-func (e StatementEdges) ObjectsOrErr() ([]*Object, error) {
+func (e StatementEdges) ObjectsOrErr() ([]*Element, error) {
 	if e.loadedTypes[0] {
 		return e.Objects, nil
 	}
@@ -57,7 +58,7 @@ func (e StatementEdges) ObjectsOrErr() ([]*Object, error) {
 
 // PredicatesOrErr returns the Predicates value or an error if the edge
 // was not loaded in eager-loading.
-func (e StatementEdges) PredicatesOrErr() ([]*Spredicate, error) {
+func (e StatementEdges) PredicatesOrErr() ([]*Element, error) {
 	if e.loadedTypes[1] {
 		return e.Predicates, nil
 	}
@@ -66,11 +67,20 @@ func (e StatementEdges) PredicatesOrErr() ([]*Spredicate, error) {
 
 // SubjectsOrErr returns the Subjects value or an error if the edge
 // was not loaded in eager-loading.
-func (e StatementEdges) SubjectsOrErr() ([]*Subject, error) {
+func (e StatementEdges) SubjectsOrErr() ([]*Element, error) {
 	if e.loadedTypes[2] {
 		return e.Subjects, nil
 	}
 	return nil, &NotLoadedError{edge: "subjects"}
+}
+
+// StatementsOrErr returns the Statements value or an error if the edge
+// was not loaded in eager-loading.
+func (e StatementEdges) StatementsOrErr() ([]*Element, error) {
+	if e.loadedTypes[3] {
+		return e.Statements, nil
+	}
+	return nil, &NotLoadedError{edge: "statements"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -78,12 +88,12 @@ func (*Statement) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case statement.FieldStatement:
-			values[i] = new([]byte)
 		case statement.FieldID:
 			values[i] = new(sql.NullInt64)
-		case statement.FieldNamespace:
+		case statement.FieldMediaType:
 			values[i] = new(sql.NullString)
+		case statement.ForeignKeys[0]: // element_statements
+			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -105,19 +115,18 @@ func (s *Statement) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			s.ID = int(value.Int64)
-		case statement.FieldNamespace:
+		case statement.FieldMediaType:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field namespace", values[i])
+				return fmt.Errorf("unexpected type %T for field mediaType", values[i])
 			} else if value.Valid {
-				s.Namespace = value.String
+				s.MediaType = value.String
 			}
-		case statement.FieldStatement:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field statement", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &s.Statement); err != nil {
-					return fmt.Errorf("unmarshal field statement: %w", err)
-				}
+		case statement.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field element_statements", value)
+			} else if value.Valid {
+				s.element_statements = new(int)
+				*s.element_statements = int(value.Int64)
 			}
 		default:
 			s.selectValues.Set(columns[i], values[i])
@@ -133,18 +142,23 @@ func (s *Statement) Value(name string) (ent.Value, error) {
 }
 
 // QueryObjects queries the "objects" edge of the Statement entity.
-func (s *Statement) QueryObjects() *ObjectQuery {
+func (s *Statement) QueryObjects() *ElementQuery {
 	return NewStatementClient(s.config).QueryObjects(s)
 }
 
 // QueryPredicates queries the "predicates" edge of the Statement entity.
-func (s *Statement) QueryPredicates() *SpredicateQuery {
+func (s *Statement) QueryPredicates() *ElementQuery {
 	return NewStatementClient(s.config).QueryPredicates(s)
 }
 
 // QuerySubjects queries the "subjects" edge of the Statement entity.
-func (s *Statement) QuerySubjects() *SubjectQuery {
+func (s *Statement) QuerySubjects() *ElementQuery {
 	return NewStatementClient(s.config).QuerySubjects(s)
+}
+
+// QueryStatements queries the "statements" edge of the Statement entity.
+func (s *Statement) QueryStatements() *ElementQuery {
+	return NewStatementClient(s.config).QueryStatements(s)
 }
 
 // Update returns a builder for updating this Statement.
@@ -170,18 +184,15 @@ func (s *Statement) String() string {
 	var builder strings.Builder
 	builder.WriteString("Statement(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", s.ID))
-	builder.WriteString("namespace=")
-	builder.WriteString(s.Namespace)
-	builder.WriteString(", ")
-	builder.WriteString("statement=")
-	builder.WriteString(fmt.Sprintf("%v", s.Statement))
+	builder.WriteString("mediaType=")
+	builder.WriteString(s.MediaType)
 	builder.WriteByte(')')
 	return builder.String()
 }
 
 // NamedObjects returns the Objects named value or an error if the edge was not
 // loaded in eager-loading with this name.
-func (s *Statement) NamedObjects(name string) ([]*Object, error) {
+func (s *Statement) NamedObjects(name string) ([]*Element, error) {
 	if s.Edges.namedObjects == nil {
 		return nil, &NotLoadedError{edge: name}
 	}
@@ -192,12 +203,12 @@ func (s *Statement) NamedObjects(name string) ([]*Object, error) {
 	return nodes, nil
 }
 
-func (s *Statement) appendNamedObjects(name string, edges ...*Object) {
+func (s *Statement) appendNamedObjects(name string, edges ...*Element) {
 	if s.Edges.namedObjects == nil {
-		s.Edges.namedObjects = make(map[string][]*Object)
+		s.Edges.namedObjects = make(map[string][]*Element)
 	}
 	if len(edges) == 0 {
-		s.Edges.namedObjects[name] = []*Object{}
+		s.Edges.namedObjects[name] = []*Element{}
 	} else {
 		s.Edges.namedObjects[name] = append(s.Edges.namedObjects[name], edges...)
 	}
@@ -205,7 +216,7 @@ func (s *Statement) appendNamedObjects(name string, edges ...*Object) {
 
 // NamedPredicates returns the Predicates named value or an error if the edge was not
 // loaded in eager-loading with this name.
-func (s *Statement) NamedPredicates(name string) ([]*Spredicate, error) {
+func (s *Statement) NamedPredicates(name string) ([]*Element, error) {
 	if s.Edges.namedPredicates == nil {
 		return nil, &NotLoadedError{edge: name}
 	}
@@ -216,12 +227,12 @@ func (s *Statement) NamedPredicates(name string) ([]*Spredicate, error) {
 	return nodes, nil
 }
 
-func (s *Statement) appendNamedPredicates(name string, edges ...*Spredicate) {
+func (s *Statement) appendNamedPredicates(name string, edges ...*Element) {
 	if s.Edges.namedPredicates == nil {
-		s.Edges.namedPredicates = make(map[string][]*Spredicate)
+		s.Edges.namedPredicates = make(map[string][]*Element)
 	}
 	if len(edges) == 0 {
-		s.Edges.namedPredicates[name] = []*Spredicate{}
+		s.Edges.namedPredicates[name] = []*Element{}
 	} else {
 		s.Edges.namedPredicates[name] = append(s.Edges.namedPredicates[name], edges...)
 	}
@@ -229,7 +240,7 @@ func (s *Statement) appendNamedPredicates(name string, edges ...*Spredicate) {
 
 // NamedSubjects returns the Subjects named value or an error if the edge was not
 // loaded in eager-loading with this name.
-func (s *Statement) NamedSubjects(name string) ([]*Subject, error) {
+func (s *Statement) NamedSubjects(name string) ([]*Element, error) {
 	if s.Edges.namedSubjects == nil {
 		return nil, &NotLoadedError{edge: name}
 	}
@@ -240,14 +251,38 @@ func (s *Statement) NamedSubjects(name string) ([]*Subject, error) {
 	return nodes, nil
 }
 
-func (s *Statement) appendNamedSubjects(name string, edges ...*Subject) {
+func (s *Statement) appendNamedSubjects(name string, edges ...*Element) {
 	if s.Edges.namedSubjects == nil {
-		s.Edges.namedSubjects = make(map[string][]*Subject)
+		s.Edges.namedSubjects = make(map[string][]*Element)
 	}
 	if len(edges) == 0 {
-		s.Edges.namedSubjects[name] = []*Subject{}
+		s.Edges.namedSubjects[name] = []*Element{}
 	} else {
 		s.Edges.namedSubjects[name] = append(s.Edges.namedSubjects[name], edges...)
+	}
+}
+
+// NamedStatements returns the Statements named value or an error if the edge was not
+// loaded in eager-loading with this name.
+func (s *Statement) NamedStatements(name string) ([]*Element, error) {
+	if s.Edges.namedStatements == nil {
+		return nil, &NotLoadedError{edge: name}
+	}
+	nodes, ok := s.Edges.namedStatements[name]
+	if !ok {
+		return nil, &NotLoadedError{edge: name}
+	}
+	return nodes, nil
+}
+
+func (s *Statement) appendNamedStatements(name string, edges ...*Element) {
+	if s.Edges.namedStatements == nil {
+		s.Edges.namedStatements = make(map[string][]*Element)
+	}
+	if len(edges) == 0 {
+		s.Edges.namedStatements[name] = []*Element{}
+	} else {
+		s.Edges.namedStatements[name] = append(s.Edges.namedStatements[name], edges...)
 	}
 }
 

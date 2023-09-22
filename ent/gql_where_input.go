@@ -6,19 +6,18 @@ import (
 	"errors"
 	"fmt"
 
-	"zotregistry.io/zot/ent/object"
+	"zotregistry.io/zot/ent/element"
 	"zotregistry.io/zot/ent/predicate"
-	"zotregistry.io/zot/ent/spredicate"
+	"zotregistry.io/zot/ent/resource"
 	"zotregistry.io/zot/ent/statement"
-	"zotregistry.io/zot/ent/subject"
 )
 
-// ObjectWhereInput represents a where input for filtering Object queries.
-type ObjectWhereInput struct {
-	Predicates []predicate.Object  `json:"-"`
-	Not        *ObjectWhereInput   `json:"not,omitempty"`
-	Or         []*ObjectWhereInput `json:"or,omitempty"`
-	And        []*ObjectWhereInput `json:"and,omitempty"`
+// ElementWhereInput represents a where input for filtering Element queries.
+type ElementWhereInput struct {
+	Predicates []predicate.Element  `json:"-"`
+	Not        *ElementWhereInput   `json:"not,omitempty"`
+	Or         []*ElementWhereInput `json:"or,omitempty"`
+	And        []*ElementWhereInput `json:"and,omitempty"`
 
 	// "id" field predicates.
 	ID      *int  `json:"id,omitempty"`
@@ -30,39 +29,62 @@ type ObjectWhereInput struct {
 	IDLT    *int  `json:"idLT,omitempty"`
 	IDLTE   *int  `json:"idLTE,omitempty"`
 
-	// "objectType" field predicates.
-	ObjectType             *string  `json:"objecttype,omitempty"`
-	ObjectTypeNEQ          *string  `json:"objecttypeNEQ,omitempty"`
-	ObjectTypeIn           []string `json:"objecttypeIn,omitempty"`
-	ObjectTypeNotIn        []string `json:"objecttypeNotIn,omitempty"`
-	ObjectTypeGT           *string  `json:"objecttypeGT,omitempty"`
-	ObjectTypeGTE          *string  `json:"objecttypeGTE,omitempty"`
-	ObjectTypeLT           *string  `json:"objecttypeLT,omitempty"`
-	ObjectTypeLTE          *string  `json:"objecttypeLTE,omitempty"`
-	ObjectTypeContains     *string  `json:"objecttypeContains,omitempty"`
-	ObjectTypeHasPrefix    *string  `json:"objecttypeHasPrefix,omitempty"`
-	ObjectTypeHasSuffix    *string  `json:"objecttypeHasSuffix,omitempty"`
-	ObjectTypeEqualFold    *string  `json:"objecttypeEqualFold,omitempty"`
-	ObjectTypeContainsFold *string  `json:"objecttypeContainsFold,omitempty"`
+	// "resourceType" field predicates.
+	ResourceType             *string  `json:"resourcetype,omitempty"`
+	ResourceTypeNEQ          *string  `json:"resourcetypeNEQ,omitempty"`
+	ResourceTypeIn           []string `json:"resourcetypeIn,omitempty"`
+	ResourceTypeNotIn        []string `json:"resourcetypeNotIn,omitempty"`
+	ResourceTypeGT           *string  `json:"resourcetypeGT,omitempty"`
+	ResourceTypeGTE          *string  `json:"resourcetypeGTE,omitempty"`
+	ResourceTypeLT           *string  `json:"resourcetypeLT,omitempty"`
+	ResourceTypeLTE          *string  `json:"resourcetypeLTE,omitempty"`
+	ResourceTypeContains     *string  `json:"resourcetypeContains,omitempty"`
+	ResourceTypeHasPrefix    *string  `json:"resourcetypeHasPrefix,omitempty"`
+	ResourceTypeHasSuffix    *string  `json:"resourcetypeHasSuffix,omitempty"`
+	ResourceTypeEqualFold    *string  `json:"resourcetypeEqualFold,omitempty"`
+	ResourceTypeContainsFold *string  `json:"resourcetypeContainsFold,omitempty"`
 
-	// "statement" edge predicates.
-	HasStatement     *bool                  `json:"hasStatement,omitempty"`
-	HasStatementWith []*StatementWhereInput `json:"hasStatementWith,omitempty"`
+	// "locatorType" field predicates.
+	LocatorType             *string  `json:"locatortype,omitempty"`
+	LocatorTypeNEQ          *string  `json:"locatortypeNEQ,omitempty"`
+	LocatorTypeIn           []string `json:"locatortypeIn,omitempty"`
+	LocatorTypeNotIn        []string `json:"locatortypeNotIn,omitempty"`
+	LocatorTypeGT           *string  `json:"locatortypeGT,omitempty"`
+	LocatorTypeGTE          *string  `json:"locatortypeGTE,omitempty"`
+	LocatorTypeLT           *string  `json:"locatortypeLT,omitempty"`
+	LocatorTypeLTE          *string  `json:"locatortypeLTE,omitempty"`
+	LocatorTypeContains     *string  `json:"locatortypeContains,omitempty"`
+	LocatorTypeHasPrefix    *string  `json:"locatortypeHasPrefix,omitempty"`
+	LocatorTypeHasSuffix    *string  `json:"locatortypeHasSuffix,omitempty"`
+	LocatorTypeEqualFold    *string  `json:"locatortypeEqualFold,omitempty"`
+	LocatorTypeContainsFold *string  `json:"locatortypeContainsFold,omitempty"`
+
+	// "statements" edge predicates.
+	HasStatements     *bool                  `json:"hasStatements,omitempty"`
+	HasStatementsWith []*StatementWhereInput `json:"hasStatementsWith,omitempty"`
+
+	// "resources" edge predicates.
+	HasResources     *bool                 `json:"hasResources,omitempty"`
+	HasResourcesWith []*ResourceWhereInput `json:"hasResourcesWith,omitempty"`
+
+	// "locations" edge predicates.
+	HasLocations     *bool                 `json:"hasLocations,omitempty"`
+	HasLocationsWith []*ResourceWhereInput `json:"hasLocationsWith,omitempty"`
 }
 
 // AddPredicates adds custom predicates to the where input to be used during the filtering phase.
-func (i *ObjectWhereInput) AddPredicates(predicates ...predicate.Object) {
+func (i *ElementWhereInput) AddPredicates(predicates ...predicate.Element) {
 	i.Predicates = append(i.Predicates, predicates...)
 }
 
-// Filter applies the ObjectWhereInput filter on the ObjectQuery builder.
-func (i *ObjectWhereInput) Filter(q *ObjectQuery) (*ObjectQuery, error) {
+// Filter applies the ElementWhereInput filter on the ElementQuery builder.
+func (i *ElementWhereInput) Filter(q *ElementQuery) (*ElementQuery, error) {
 	if i == nil {
 		return q, nil
 	}
 	p, err := i.P()
 	if err != nil {
-		if err == ErrEmptyObjectWhereInput {
+		if err == ErrEmptyElementWhereInput {
 			return q, nil
 		}
 		return nil, err
@@ -70,19 +92,19 @@ func (i *ObjectWhereInput) Filter(q *ObjectQuery) (*ObjectQuery, error) {
 	return q.Where(p), nil
 }
 
-// ErrEmptyObjectWhereInput is returned in case the ObjectWhereInput is empty.
-var ErrEmptyObjectWhereInput = errors.New("ent: empty predicate ObjectWhereInput")
+// ErrEmptyElementWhereInput is returned in case the ElementWhereInput is empty.
+var ErrEmptyElementWhereInput = errors.New("ent: empty predicate ElementWhereInput")
 
-// P returns a predicate for filtering objects.
+// P returns a predicate for filtering elements.
 // An error is returned if the input is empty or invalid.
-func (i *ObjectWhereInput) P() (predicate.Object, error) {
-	var predicates []predicate.Object
+func (i *ElementWhereInput) P() (predicate.Element, error) {
+	var predicates []predicate.Element
 	if i.Not != nil {
 		p, err := i.Not.P()
 		if err != nil {
 			return nil, fmt.Errorf("%w: field 'not'", err)
 		}
-		predicates = append(predicates, object.Not(p))
+		predicates = append(predicates, element.Not(p))
 	}
 	switch n := len(i.Or); {
 	case n == 1:
@@ -92,7 +114,7 @@ func (i *ObjectWhereInput) P() (predicate.Object, error) {
 		}
 		predicates = append(predicates, p)
 	case n > 1:
-		or := make([]predicate.Object, 0, n)
+		or := make([]predicate.Element, 0, n)
 		for _, w := range i.Or {
 			p, err := w.P()
 			if err != nil {
@@ -100,7 +122,7 @@ func (i *ObjectWhereInput) P() (predicate.Object, error) {
 			}
 			or = append(or, p)
 		}
-		predicates = append(predicates, object.Or(or...))
+		predicates = append(predicates, element.Or(or...))
 	}
 	switch n := len(i.And); {
 	case n == 1:
@@ -110,7 +132,7 @@ func (i *ObjectWhereInput) P() (predicate.Object, error) {
 		}
 		predicates = append(predicates, p)
 	case n > 1:
-		and := make([]predicate.Object, 0, n)
+		and := make([]predicate.Element, 0, n)
 		for _, w := range i.And {
 			p, err := w.P()
 			if err != nil {
@@ -118,107 +140,182 @@ func (i *ObjectWhereInput) P() (predicate.Object, error) {
 			}
 			and = append(and, p)
 		}
-		predicates = append(predicates, object.And(and...))
+		predicates = append(predicates, element.And(and...))
 	}
 	predicates = append(predicates, i.Predicates...)
 	if i.ID != nil {
-		predicates = append(predicates, object.IDEQ(*i.ID))
+		predicates = append(predicates, element.IDEQ(*i.ID))
 	}
 	if i.IDNEQ != nil {
-		predicates = append(predicates, object.IDNEQ(*i.IDNEQ))
+		predicates = append(predicates, element.IDNEQ(*i.IDNEQ))
 	}
 	if len(i.IDIn) > 0 {
-		predicates = append(predicates, object.IDIn(i.IDIn...))
+		predicates = append(predicates, element.IDIn(i.IDIn...))
 	}
 	if len(i.IDNotIn) > 0 {
-		predicates = append(predicates, object.IDNotIn(i.IDNotIn...))
+		predicates = append(predicates, element.IDNotIn(i.IDNotIn...))
 	}
 	if i.IDGT != nil {
-		predicates = append(predicates, object.IDGT(*i.IDGT))
+		predicates = append(predicates, element.IDGT(*i.IDGT))
 	}
 	if i.IDGTE != nil {
-		predicates = append(predicates, object.IDGTE(*i.IDGTE))
+		predicates = append(predicates, element.IDGTE(*i.IDGTE))
 	}
 	if i.IDLT != nil {
-		predicates = append(predicates, object.IDLT(*i.IDLT))
+		predicates = append(predicates, element.IDLT(*i.IDLT))
 	}
 	if i.IDLTE != nil {
-		predicates = append(predicates, object.IDLTE(*i.IDLTE))
+		predicates = append(predicates, element.IDLTE(*i.IDLTE))
 	}
-	if i.ObjectType != nil {
-		predicates = append(predicates, object.ObjectTypeEQ(*i.ObjectType))
+	if i.ResourceType != nil {
+		predicates = append(predicates, element.ResourceTypeEQ(*i.ResourceType))
 	}
-	if i.ObjectTypeNEQ != nil {
-		predicates = append(predicates, object.ObjectTypeNEQ(*i.ObjectTypeNEQ))
+	if i.ResourceTypeNEQ != nil {
+		predicates = append(predicates, element.ResourceTypeNEQ(*i.ResourceTypeNEQ))
 	}
-	if len(i.ObjectTypeIn) > 0 {
-		predicates = append(predicates, object.ObjectTypeIn(i.ObjectTypeIn...))
+	if len(i.ResourceTypeIn) > 0 {
+		predicates = append(predicates, element.ResourceTypeIn(i.ResourceTypeIn...))
 	}
-	if len(i.ObjectTypeNotIn) > 0 {
-		predicates = append(predicates, object.ObjectTypeNotIn(i.ObjectTypeNotIn...))
+	if len(i.ResourceTypeNotIn) > 0 {
+		predicates = append(predicates, element.ResourceTypeNotIn(i.ResourceTypeNotIn...))
 	}
-	if i.ObjectTypeGT != nil {
-		predicates = append(predicates, object.ObjectTypeGT(*i.ObjectTypeGT))
+	if i.ResourceTypeGT != nil {
+		predicates = append(predicates, element.ResourceTypeGT(*i.ResourceTypeGT))
 	}
-	if i.ObjectTypeGTE != nil {
-		predicates = append(predicates, object.ObjectTypeGTE(*i.ObjectTypeGTE))
+	if i.ResourceTypeGTE != nil {
+		predicates = append(predicates, element.ResourceTypeGTE(*i.ResourceTypeGTE))
 	}
-	if i.ObjectTypeLT != nil {
-		predicates = append(predicates, object.ObjectTypeLT(*i.ObjectTypeLT))
+	if i.ResourceTypeLT != nil {
+		predicates = append(predicates, element.ResourceTypeLT(*i.ResourceTypeLT))
 	}
-	if i.ObjectTypeLTE != nil {
-		predicates = append(predicates, object.ObjectTypeLTE(*i.ObjectTypeLTE))
+	if i.ResourceTypeLTE != nil {
+		predicates = append(predicates, element.ResourceTypeLTE(*i.ResourceTypeLTE))
 	}
-	if i.ObjectTypeContains != nil {
-		predicates = append(predicates, object.ObjectTypeContains(*i.ObjectTypeContains))
+	if i.ResourceTypeContains != nil {
+		predicates = append(predicates, element.ResourceTypeContains(*i.ResourceTypeContains))
 	}
-	if i.ObjectTypeHasPrefix != nil {
-		predicates = append(predicates, object.ObjectTypeHasPrefix(*i.ObjectTypeHasPrefix))
+	if i.ResourceTypeHasPrefix != nil {
+		predicates = append(predicates, element.ResourceTypeHasPrefix(*i.ResourceTypeHasPrefix))
 	}
-	if i.ObjectTypeHasSuffix != nil {
-		predicates = append(predicates, object.ObjectTypeHasSuffix(*i.ObjectTypeHasSuffix))
+	if i.ResourceTypeHasSuffix != nil {
+		predicates = append(predicates, element.ResourceTypeHasSuffix(*i.ResourceTypeHasSuffix))
 	}
-	if i.ObjectTypeEqualFold != nil {
-		predicates = append(predicates, object.ObjectTypeEqualFold(*i.ObjectTypeEqualFold))
+	if i.ResourceTypeEqualFold != nil {
+		predicates = append(predicates, element.ResourceTypeEqualFold(*i.ResourceTypeEqualFold))
 	}
-	if i.ObjectTypeContainsFold != nil {
-		predicates = append(predicates, object.ObjectTypeContainsFold(*i.ObjectTypeContainsFold))
+	if i.ResourceTypeContainsFold != nil {
+		predicates = append(predicates, element.ResourceTypeContainsFold(*i.ResourceTypeContainsFold))
+	}
+	if i.LocatorType != nil {
+		predicates = append(predicates, element.LocatorTypeEQ(*i.LocatorType))
+	}
+	if i.LocatorTypeNEQ != nil {
+		predicates = append(predicates, element.LocatorTypeNEQ(*i.LocatorTypeNEQ))
+	}
+	if len(i.LocatorTypeIn) > 0 {
+		predicates = append(predicates, element.LocatorTypeIn(i.LocatorTypeIn...))
+	}
+	if len(i.LocatorTypeNotIn) > 0 {
+		predicates = append(predicates, element.LocatorTypeNotIn(i.LocatorTypeNotIn...))
+	}
+	if i.LocatorTypeGT != nil {
+		predicates = append(predicates, element.LocatorTypeGT(*i.LocatorTypeGT))
+	}
+	if i.LocatorTypeGTE != nil {
+		predicates = append(predicates, element.LocatorTypeGTE(*i.LocatorTypeGTE))
+	}
+	if i.LocatorTypeLT != nil {
+		predicates = append(predicates, element.LocatorTypeLT(*i.LocatorTypeLT))
+	}
+	if i.LocatorTypeLTE != nil {
+		predicates = append(predicates, element.LocatorTypeLTE(*i.LocatorTypeLTE))
+	}
+	if i.LocatorTypeContains != nil {
+		predicates = append(predicates, element.LocatorTypeContains(*i.LocatorTypeContains))
+	}
+	if i.LocatorTypeHasPrefix != nil {
+		predicates = append(predicates, element.LocatorTypeHasPrefix(*i.LocatorTypeHasPrefix))
+	}
+	if i.LocatorTypeHasSuffix != nil {
+		predicates = append(predicates, element.LocatorTypeHasSuffix(*i.LocatorTypeHasSuffix))
+	}
+	if i.LocatorTypeEqualFold != nil {
+		predicates = append(predicates, element.LocatorTypeEqualFold(*i.LocatorTypeEqualFold))
+	}
+	if i.LocatorTypeContainsFold != nil {
+		predicates = append(predicates, element.LocatorTypeContainsFold(*i.LocatorTypeContainsFold))
 	}
 
-	if i.HasStatement != nil {
-		p := object.HasStatement()
-		if !*i.HasStatement {
-			p = object.Not(p)
+	if i.HasStatements != nil {
+		p := element.HasStatements()
+		if !*i.HasStatements {
+			p = element.Not(p)
 		}
 		predicates = append(predicates, p)
 	}
-	if len(i.HasStatementWith) > 0 {
-		with := make([]predicate.Statement, 0, len(i.HasStatementWith))
-		for _, w := range i.HasStatementWith {
+	if len(i.HasStatementsWith) > 0 {
+		with := make([]predicate.Statement, 0, len(i.HasStatementsWith))
+		for _, w := range i.HasStatementsWith {
 			p, err := w.P()
 			if err != nil {
-				return nil, fmt.Errorf("%w: field 'HasStatementWith'", err)
+				return nil, fmt.Errorf("%w: field 'HasStatementsWith'", err)
 			}
 			with = append(with, p)
 		}
-		predicates = append(predicates, object.HasStatementWith(with...))
+		predicates = append(predicates, element.HasStatementsWith(with...))
+	}
+	if i.HasResources != nil {
+		p := element.HasResources()
+		if !*i.HasResources {
+			p = element.Not(p)
+		}
+		predicates = append(predicates, p)
+	}
+	if len(i.HasResourcesWith) > 0 {
+		with := make([]predicate.Resource, 0, len(i.HasResourcesWith))
+		for _, w := range i.HasResourcesWith {
+			p, err := w.P()
+			if err != nil {
+				return nil, fmt.Errorf("%w: field 'HasResourcesWith'", err)
+			}
+			with = append(with, p)
+		}
+		predicates = append(predicates, element.HasResourcesWith(with...))
+	}
+	if i.HasLocations != nil {
+		p := element.HasLocations()
+		if !*i.HasLocations {
+			p = element.Not(p)
+		}
+		predicates = append(predicates, p)
+	}
+	if len(i.HasLocationsWith) > 0 {
+		with := make([]predicate.Resource, 0, len(i.HasLocationsWith))
+		for _, w := range i.HasLocationsWith {
+			p, err := w.P()
+			if err != nil {
+				return nil, fmt.Errorf("%w: field 'HasLocationsWith'", err)
+			}
+			with = append(with, p)
+		}
+		predicates = append(predicates, element.HasLocationsWith(with...))
 	}
 	switch len(predicates) {
 	case 0:
-		return nil, ErrEmptyObjectWhereInput
+		return nil, ErrEmptyElementWhereInput
 	case 1:
 		return predicates[0], nil
 	default:
-		return object.And(predicates...), nil
+		return element.And(predicates...), nil
 	}
 }
 
-// SpredicateWhereInput represents a where input for filtering Spredicate queries.
-type SpredicateWhereInput struct {
-	Predicates []predicate.Spredicate  `json:"-"`
-	Not        *SpredicateWhereInput   `json:"not,omitempty"`
-	Or         []*SpredicateWhereInput `json:"or,omitempty"`
-	And        []*SpredicateWhereInput `json:"and,omitempty"`
+// ResourceWhereInput represents a where input for filtering Resource queries.
+type ResourceWhereInput struct {
+	Predicates []predicate.Resource  `json:"-"`
+	Not        *ResourceWhereInput   `json:"not,omitempty"`
+	Or         []*ResourceWhereInput `json:"or,omitempty"`
+	And        []*ResourceWhereInput `json:"and,omitempty"`
 
 	// "id" field predicates.
 	ID      *int  `json:"id,omitempty"`
@@ -230,39 +327,24 @@ type SpredicateWhereInput struct {
 	IDLT    *int  `json:"idLT,omitempty"`
 	IDLTE   *int  `json:"idLTE,omitempty"`
 
-	// "predicateType" field predicates.
-	PredicateType             *string  `json:"predicatetype,omitempty"`
-	PredicateTypeNEQ          *string  `json:"predicatetypeNEQ,omitempty"`
-	PredicateTypeIn           []string `json:"predicatetypeIn,omitempty"`
-	PredicateTypeNotIn        []string `json:"predicatetypeNotIn,omitempty"`
-	PredicateTypeGT           *string  `json:"predicatetypeGT,omitempty"`
-	PredicateTypeGTE          *string  `json:"predicatetypeGTE,omitempty"`
-	PredicateTypeLT           *string  `json:"predicatetypeLT,omitempty"`
-	PredicateTypeLTE          *string  `json:"predicatetypeLTE,omitempty"`
-	PredicateTypeContains     *string  `json:"predicatetypeContains,omitempty"`
-	PredicateTypeHasPrefix    *string  `json:"predicatetypeHasPrefix,omitempty"`
-	PredicateTypeHasSuffix    *string  `json:"predicatetypeHasSuffix,omitempty"`
-	PredicateTypeEqualFold    *string  `json:"predicatetypeEqualFold,omitempty"`
-	PredicateTypeContainsFold *string  `json:"predicatetypeContainsFold,omitempty"`
-
-	// "statement" edge predicates.
-	HasStatement     *bool                  `json:"hasStatement,omitempty"`
-	HasStatementWith []*StatementWhereInput `json:"hasStatementWith,omitempty"`
+	// "elements" edge predicates.
+	HasElements     *bool                `json:"hasElements,omitempty"`
+	HasElementsWith []*ElementWhereInput `json:"hasElementsWith,omitempty"`
 }
 
 // AddPredicates adds custom predicates to the where input to be used during the filtering phase.
-func (i *SpredicateWhereInput) AddPredicates(predicates ...predicate.Spredicate) {
+func (i *ResourceWhereInput) AddPredicates(predicates ...predicate.Resource) {
 	i.Predicates = append(i.Predicates, predicates...)
 }
 
-// Filter applies the SpredicateWhereInput filter on the SpredicateQuery builder.
-func (i *SpredicateWhereInput) Filter(q *SpredicateQuery) (*SpredicateQuery, error) {
+// Filter applies the ResourceWhereInput filter on the ResourceQuery builder.
+func (i *ResourceWhereInput) Filter(q *ResourceQuery) (*ResourceQuery, error) {
 	if i == nil {
 		return q, nil
 	}
 	p, err := i.P()
 	if err != nil {
-		if err == ErrEmptySpredicateWhereInput {
+		if err == ErrEmptyResourceWhereInput {
 			return q, nil
 		}
 		return nil, err
@@ -270,19 +352,19 @@ func (i *SpredicateWhereInput) Filter(q *SpredicateQuery) (*SpredicateQuery, err
 	return q.Where(p), nil
 }
 
-// ErrEmptySpredicateWhereInput is returned in case the SpredicateWhereInput is empty.
-var ErrEmptySpredicateWhereInput = errors.New("ent: empty predicate SpredicateWhereInput")
+// ErrEmptyResourceWhereInput is returned in case the ResourceWhereInput is empty.
+var ErrEmptyResourceWhereInput = errors.New("ent: empty predicate ResourceWhereInput")
 
-// P returns a predicate for filtering spredicates.
+// P returns a predicate for filtering resources.
 // An error is returned if the input is empty or invalid.
-func (i *SpredicateWhereInput) P() (predicate.Spredicate, error) {
-	var predicates []predicate.Spredicate
+func (i *ResourceWhereInput) P() (predicate.Resource, error) {
+	var predicates []predicate.Resource
 	if i.Not != nil {
 		p, err := i.Not.P()
 		if err != nil {
 			return nil, fmt.Errorf("%w: field 'not'", err)
 		}
-		predicates = append(predicates, spredicate.Not(p))
+		predicates = append(predicates, resource.Not(p))
 	}
 	switch n := len(i.Or); {
 	case n == 1:
@@ -292,7 +374,7 @@ func (i *SpredicateWhereInput) P() (predicate.Spredicate, error) {
 		}
 		predicates = append(predicates, p)
 	case n > 1:
-		or := make([]predicate.Spredicate, 0, n)
+		or := make([]predicate.Resource, 0, n)
 		for _, w := range i.Or {
 			p, err := w.P()
 			if err != nil {
@@ -300,7 +382,7 @@ func (i *SpredicateWhereInput) P() (predicate.Spredicate, error) {
 			}
 			or = append(or, p)
 		}
-		predicates = append(predicates, spredicate.Or(or...))
+		predicates = append(predicates, resource.Or(or...))
 	}
 	switch n := len(i.And); {
 	case n == 1:
@@ -310,7 +392,7 @@ func (i *SpredicateWhereInput) P() (predicate.Spredicate, error) {
 		}
 		predicates = append(predicates, p)
 	case n > 1:
-		and := make([]predicate.Spredicate, 0, n)
+		and := make([]predicate.Resource, 0, n)
 		for _, w := range i.And {
 			p, err := w.P()
 			if err != nil {
@@ -318,98 +400,59 @@ func (i *SpredicateWhereInput) P() (predicate.Spredicate, error) {
 			}
 			and = append(and, p)
 		}
-		predicates = append(predicates, spredicate.And(and...))
+		predicates = append(predicates, resource.And(and...))
 	}
 	predicates = append(predicates, i.Predicates...)
 	if i.ID != nil {
-		predicates = append(predicates, spredicate.IDEQ(*i.ID))
+		predicates = append(predicates, resource.IDEQ(*i.ID))
 	}
 	if i.IDNEQ != nil {
-		predicates = append(predicates, spredicate.IDNEQ(*i.IDNEQ))
+		predicates = append(predicates, resource.IDNEQ(*i.IDNEQ))
 	}
 	if len(i.IDIn) > 0 {
-		predicates = append(predicates, spredicate.IDIn(i.IDIn...))
+		predicates = append(predicates, resource.IDIn(i.IDIn...))
 	}
 	if len(i.IDNotIn) > 0 {
-		predicates = append(predicates, spredicate.IDNotIn(i.IDNotIn...))
+		predicates = append(predicates, resource.IDNotIn(i.IDNotIn...))
 	}
 	if i.IDGT != nil {
-		predicates = append(predicates, spredicate.IDGT(*i.IDGT))
+		predicates = append(predicates, resource.IDGT(*i.IDGT))
 	}
 	if i.IDGTE != nil {
-		predicates = append(predicates, spredicate.IDGTE(*i.IDGTE))
+		predicates = append(predicates, resource.IDGTE(*i.IDGTE))
 	}
 	if i.IDLT != nil {
-		predicates = append(predicates, spredicate.IDLT(*i.IDLT))
+		predicates = append(predicates, resource.IDLT(*i.IDLT))
 	}
 	if i.IDLTE != nil {
-		predicates = append(predicates, spredicate.IDLTE(*i.IDLTE))
-	}
-	if i.PredicateType != nil {
-		predicates = append(predicates, spredicate.PredicateTypeEQ(*i.PredicateType))
-	}
-	if i.PredicateTypeNEQ != nil {
-		predicates = append(predicates, spredicate.PredicateTypeNEQ(*i.PredicateTypeNEQ))
-	}
-	if len(i.PredicateTypeIn) > 0 {
-		predicates = append(predicates, spredicate.PredicateTypeIn(i.PredicateTypeIn...))
-	}
-	if len(i.PredicateTypeNotIn) > 0 {
-		predicates = append(predicates, spredicate.PredicateTypeNotIn(i.PredicateTypeNotIn...))
-	}
-	if i.PredicateTypeGT != nil {
-		predicates = append(predicates, spredicate.PredicateTypeGT(*i.PredicateTypeGT))
-	}
-	if i.PredicateTypeGTE != nil {
-		predicates = append(predicates, spredicate.PredicateTypeGTE(*i.PredicateTypeGTE))
-	}
-	if i.PredicateTypeLT != nil {
-		predicates = append(predicates, spredicate.PredicateTypeLT(*i.PredicateTypeLT))
-	}
-	if i.PredicateTypeLTE != nil {
-		predicates = append(predicates, spredicate.PredicateTypeLTE(*i.PredicateTypeLTE))
-	}
-	if i.PredicateTypeContains != nil {
-		predicates = append(predicates, spredicate.PredicateTypeContains(*i.PredicateTypeContains))
-	}
-	if i.PredicateTypeHasPrefix != nil {
-		predicates = append(predicates, spredicate.PredicateTypeHasPrefix(*i.PredicateTypeHasPrefix))
-	}
-	if i.PredicateTypeHasSuffix != nil {
-		predicates = append(predicates, spredicate.PredicateTypeHasSuffix(*i.PredicateTypeHasSuffix))
-	}
-	if i.PredicateTypeEqualFold != nil {
-		predicates = append(predicates, spredicate.PredicateTypeEqualFold(*i.PredicateTypeEqualFold))
-	}
-	if i.PredicateTypeContainsFold != nil {
-		predicates = append(predicates, spredicate.PredicateTypeContainsFold(*i.PredicateTypeContainsFold))
+		predicates = append(predicates, resource.IDLTE(*i.IDLTE))
 	}
 
-	if i.HasStatement != nil {
-		p := spredicate.HasStatement()
-		if !*i.HasStatement {
-			p = spredicate.Not(p)
+	if i.HasElements != nil {
+		p := resource.HasElements()
+		if !*i.HasElements {
+			p = resource.Not(p)
 		}
 		predicates = append(predicates, p)
 	}
-	if len(i.HasStatementWith) > 0 {
-		with := make([]predicate.Statement, 0, len(i.HasStatementWith))
-		for _, w := range i.HasStatementWith {
+	if len(i.HasElementsWith) > 0 {
+		with := make([]predicate.Element, 0, len(i.HasElementsWith))
+		for _, w := range i.HasElementsWith {
 			p, err := w.P()
 			if err != nil {
-				return nil, fmt.Errorf("%w: field 'HasStatementWith'", err)
+				return nil, fmt.Errorf("%w: field 'HasElementsWith'", err)
 			}
 			with = append(with, p)
 		}
-		predicates = append(predicates, spredicate.HasStatementWith(with...))
+		predicates = append(predicates, resource.HasElementsWith(with...))
 	}
 	switch len(predicates) {
 	case 0:
-		return nil, ErrEmptySpredicateWhereInput
+		return nil, ErrEmptyResourceWhereInput
 	case 1:
 		return predicates[0], nil
 	default:
-		return spredicate.And(predicates...), nil
+		return resource.And(predicates...), nil
 	}
 }
 
@@ -430,32 +473,36 @@ type StatementWhereInput struct {
 	IDLT    *int  `json:"idLT,omitempty"`
 	IDLTE   *int  `json:"idLTE,omitempty"`
 
-	// "namespace" field predicates.
-	Namespace             *string  `json:"namespace,omitempty"`
-	NamespaceNEQ          *string  `json:"namespaceNEQ,omitempty"`
-	NamespaceIn           []string `json:"namespaceIn,omitempty"`
-	NamespaceNotIn        []string `json:"namespaceNotIn,omitempty"`
-	NamespaceGT           *string  `json:"namespaceGT,omitempty"`
-	NamespaceGTE          *string  `json:"namespaceGTE,omitempty"`
-	NamespaceLT           *string  `json:"namespaceLT,omitempty"`
-	NamespaceLTE          *string  `json:"namespaceLTE,omitempty"`
-	NamespaceContains     *string  `json:"namespaceContains,omitempty"`
-	NamespaceHasPrefix    *string  `json:"namespaceHasPrefix,omitempty"`
-	NamespaceHasSuffix    *string  `json:"namespaceHasSuffix,omitempty"`
-	NamespaceEqualFold    *string  `json:"namespaceEqualFold,omitempty"`
-	NamespaceContainsFold *string  `json:"namespaceContainsFold,omitempty"`
+	// "mediaType" field predicates.
+	MediaType             *string  `json:"mediatype,omitempty"`
+	MediaTypeNEQ          *string  `json:"mediatypeNEQ,omitempty"`
+	MediaTypeIn           []string `json:"mediatypeIn,omitempty"`
+	MediaTypeNotIn        []string `json:"mediatypeNotIn,omitempty"`
+	MediaTypeGT           *string  `json:"mediatypeGT,omitempty"`
+	MediaTypeGTE          *string  `json:"mediatypeGTE,omitempty"`
+	MediaTypeLT           *string  `json:"mediatypeLT,omitempty"`
+	MediaTypeLTE          *string  `json:"mediatypeLTE,omitempty"`
+	MediaTypeContains     *string  `json:"mediatypeContains,omitempty"`
+	MediaTypeHasPrefix    *string  `json:"mediatypeHasPrefix,omitempty"`
+	MediaTypeHasSuffix    *string  `json:"mediatypeHasSuffix,omitempty"`
+	MediaTypeEqualFold    *string  `json:"mediatypeEqualFold,omitempty"`
+	MediaTypeContainsFold *string  `json:"mediatypeContainsFold,omitempty"`
 
 	// "objects" edge predicates.
-	HasObjects     *bool               `json:"hasObjects,omitempty"`
-	HasObjectsWith []*ObjectWhereInput `json:"hasObjectsWith,omitempty"`
+	HasObjects     *bool                `json:"hasObjects,omitempty"`
+	HasObjectsWith []*ElementWhereInput `json:"hasObjectsWith,omitempty"`
 
 	// "predicates" edge predicates.
-	HasPredicates     *bool                   `json:"hasPredicates,omitempty"`
-	HasPredicatesWith []*SpredicateWhereInput `json:"hasPredicatesWith,omitempty"`
+	HasPredicates     *bool                `json:"hasPredicates,omitempty"`
+	HasPredicatesWith []*ElementWhereInput `json:"hasPredicatesWith,omitempty"`
 
 	// "subjects" edge predicates.
 	HasSubjects     *bool                `json:"hasSubjects,omitempty"`
-	HasSubjectsWith []*SubjectWhereInput `json:"hasSubjectsWith,omitempty"`
+	HasSubjectsWith []*ElementWhereInput `json:"hasSubjectsWith,omitempty"`
+
+	// "statements" edge predicates.
+	HasStatements     *bool                `json:"hasStatements,omitempty"`
+	HasStatementsWith []*ElementWhereInput `json:"hasStatementsWith,omitempty"`
 }
 
 // AddPredicates adds custom predicates to the where input to be used during the filtering phase.
@@ -553,44 +600,44 @@ func (i *StatementWhereInput) P() (predicate.Statement, error) {
 	if i.IDLTE != nil {
 		predicates = append(predicates, statement.IDLTE(*i.IDLTE))
 	}
-	if i.Namespace != nil {
-		predicates = append(predicates, statement.NamespaceEQ(*i.Namespace))
+	if i.MediaType != nil {
+		predicates = append(predicates, statement.MediaTypeEQ(*i.MediaType))
 	}
-	if i.NamespaceNEQ != nil {
-		predicates = append(predicates, statement.NamespaceNEQ(*i.NamespaceNEQ))
+	if i.MediaTypeNEQ != nil {
+		predicates = append(predicates, statement.MediaTypeNEQ(*i.MediaTypeNEQ))
 	}
-	if len(i.NamespaceIn) > 0 {
-		predicates = append(predicates, statement.NamespaceIn(i.NamespaceIn...))
+	if len(i.MediaTypeIn) > 0 {
+		predicates = append(predicates, statement.MediaTypeIn(i.MediaTypeIn...))
 	}
-	if len(i.NamespaceNotIn) > 0 {
-		predicates = append(predicates, statement.NamespaceNotIn(i.NamespaceNotIn...))
+	if len(i.MediaTypeNotIn) > 0 {
+		predicates = append(predicates, statement.MediaTypeNotIn(i.MediaTypeNotIn...))
 	}
-	if i.NamespaceGT != nil {
-		predicates = append(predicates, statement.NamespaceGT(*i.NamespaceGT))
+	if i.MediaTypeGT != nil {
+		predicates = append(predicates, statement.MediaTypeGT(*i.MediaTypeGT))
 	}
-	if i.NamespaceGTE != nil {
-		predicates = append(predicates, statement.NamespaceGTE(*i.NamespaceGTE))
+	if i.MediaTypeGTE != nil {
+		predicates = append(predicates, statement.MediaTypeGTE(*i.MediaTypeGTE))
 	}
-	if i.NamespaceLT != nil {
-		predicates = append(predicates, statement.NamespaceLT(*i.NamespaceLT))
+	if i.MediaTypeLT != nil {
+		predicates = append(predicates, statement.MediaTypeLT(*i.MediaTypeLT))
 	}
-	if i.NamespaceLTE != nil {
-		predicates = append(predicates, statement.NamespaceLTE(*i.NamespaceLTE))
+	if i.MediaTypeLTE != nil {
+		predicates = append(predicates, statement.MediaTypeLTE(*i.MediaTypeLTE))
 	}
-	if i.NamespaceContains != nil {
-		predicates = append(predicates, statement.NamespaceContains(*i.NamespaceContains))
+	if i.MediaTypeContains != nil {
+		predicates = append(predicates, statement.MediaTypeContains(*i.MediaTypeContains))
 	}
-	if i.NamespaceHasPrefix != nil {
-		predicates = append(predicates, statement.NamespaceHasPrefix(*i.NamespaceHasPrefix))
+	if i.MediaTypeHasPrefix != nil {
+		predicates = append(predicates, statement.MediaTypeHasPrefix(*i.MediaTypeHasPrefix))
 	}
-	if i.NamespaceHasSuffix != nil {
-		predicates = append(predicates, statement.NamespaceHasSuffix(*i.NamespaceHasSuffix))
+	if i.MediaTypeHasSuffix != nil {
+		predicates = append(predicates, statement.MediaTypeHasSuffix(*i.MediaTypeHasSuffix))
 	}
-	if i.NamespaceEqualFold != nil {
-		predicates = append(predicates, statement.NamespaceEqualFold(*i.NamespaceEqualFold))
+	if i.MediaTypeEqualFold != nil {
+		predicates = append(predicates, statement.MediaTypeEqualFold(*i.MediaTypeEqualFold))
 	}
-	if i.NamespaceContainsFold != nil {
-		predicates = append(predicates, statement.NamespaceContainsFold(*i.NamespaceContainsFold))
+	if i.MediaTypeContainsFold != nil {
+		predicates = append(predicates, statement.MediaTypeContainsFold(*i.MediaTypeContainsFold))
 	}
 
 	if i.HasObjects != nil {
@@ -601,7 +648,7 @@ func (i *StatementWhereInput) P() (predicate.Statement, error) {
 		predicates = append(predicates, p)
 	}
 	if len(i.HasObjectsWith) > 0 {
-		with := make([]predicate.Object, 0, len(i.HasObjectsWith))
+		with := make([]predicate.Element, 0, len(i.HasObjectsWith))
 		for _, w := range i.HasObjectsWith {
 			p, err := w.P()
 			if err != nil {
@@ -619,7 +666,7 @@ func (i *StatementWhereInput) P() (predicate.Statement, error) {
 		predicates = append(predicates, p)
 	}
 	if len(i.HasPredicatesWith) > 0 {
-		with := make([]predicate.Spredicate, 0, len(i.HasPredicatesWith))
+		with := make([]predicate.Element, 0, len(i.HasPredicatesWith))
 		for _, w := range i.HasPredicatesWith {
 			p, err := w.P()
 			if err != nil {
@@ -637,7 +684,7 @@ func (i *StatementWhereInput) P() (predicate.Statement, error) {
 		predicates = append(predicates, p)
 	}
 	if len(i.HasSubjectsWith) > 0 {
-		with := make([]predicate.Subject, 0, len(i.HasSubjectsWith))
+		with := make([]predicate.Element, 0, len(i.HasSubjectsWith))
 		for _, w := range i.HasSubjectsWith {
 			p, err := w.P()
 			if err != nil {
@@ -647,6 +694,24 @@ func (i *StatementWhereInput) P() (predicate.Statement, error) {
 		}
 		predicates = append(predicates, statement.HasSubjectsWith(with...))
 	}
+	if i.HasStatements != nil {
+		p := statement.HasStatements()
+		if !*i.HasStatements {
+			p = statement.Not(p)
+		}
+		predicates = append(predicates, p)
+	}
+	if len(i.HasStatementsWith) > 0 {
+		with := make([]predicate.Element, 0, len(i.HasStatementsWith))
+		for _, w := range i.HasStatementsWith {
+			p, err := w.P()
+			if err != nil {
+				return nil, fmt.Errorf("%w: field 'HasStatementsWith'", err)
+			}
+			with = append(with, p)
+		}
+		predicates = append(predicates, statement.HasStatementsWith(with...))
+	}
 	switch len(predicates) {
 	case 0:
 		return nil, ErrEmptyStatementWhereInput
@@ -654,205 +719,5 @@ func (i *StatementWhereInput) P() (predicate.Statement, error) {
 		return predicates[0], nil
 	default:
 		return statement.And(predicates...), nil
-	}
-}
-
-// SubjectWhereInput represents a where input for filtering Subject queries.
-type SubjectWhereInput struct {
-	Predicates []predicate.Subject  `json:"-"`
-	Not        *SubjectWhereInput   `json:"not,omitempty"`
-	Or         []*SubjectWhereInput `json:"or,omitempty"`
-	And        []*SubjectWhereInput `json:"and,omitempty"`
-
-	// "id" field predicates.
-	ID      *int  `json:"id,omitempty"`
-	IDNEQ   *int  `json:"idNEQ,omitempty"`
-	IDIn    []int `json:"idIn,omitempty"`
-	IDNotIn []int `json:"idNotIn,omitempty"`
-	IDGT    *int  `json:"idGT,omitempty"`
-	IDGTE   *int  `json:"idGTE,omitempty"`
-	IDLT    *int  `json:"idLT,omitempty"`
-	IDLTE   *int  `json:"idLTE,omitempty"`
-
-	// "subjectType" field predicates.
-	SubjectType             *string  `json:"subjecttype,omitempty"`
-	SubjectTypeNEQ          *string  `json:"subjecttypeNEQ,omitempty"`
-	SubjectTypeIn           []string `json:"subjecttypeIn,omitempty"`
-	SubjectTypeNotIn        []string `json:"subjecttypeNotIn,omitempty"`
-	SubjectTypeGT           *string  `json:"subjecttypeGT,omitempty"`
-	SubjectTypeGTE          *string  `json:"subjecttypeGTE,omitempty"`
-	SubjectTypeLT           *string  `json:"subjecttypeLT,omitempty"`
-	SubjectTypeLTE          *string  `json:"subjecttypeLTE,omitempty"`
-	SubjectTypeContains     *string  `json:"subjecttypeContains,omitempty"`
-	SubjectTypeHasPrefix    *string  `json:"subjecttypeHasPrefix,omitempty"`
-	SubjectTypeHasSuffix    *string  `json:"subjecttypeHasSuffix,omitempty"`
-	SubjectTypeEqualFold    *string  `json:"subjecttypeEqualFold,omitempty"`
-	SubjectTypeContainsFold *string  `json:"subjecttypeContainsFold,omitempty"`
-
-	// "statement" edge predicates.
-	HasStatement     *bool                  `json:"hasStatement,omitempty"`
-	HasStatementWith []*StatementWhereInput `json:"hasStatementWith,omitempty"`
-}
-
-// AddPredicates adds custom predicates to the where input to be used during the filtering phase.
-func (i *SubjectWhereInput) AddPredicates(predicates ...predicate.Subject) {
-	i.Predicates = append(i.Predicates, predicates...)
-}
-
-// Filter applies the SubjectWhereInput filter on the SubjectQuery builder.
-func (i *SubjectWhereInput) Filter(q *SubjectQuery) (*SubjectQuery, error) {
-	if i == nil {
-		return q, nil
-	}
-	p, err := i.P()
-	if err != nil {
-		if err == ErrEmptySubjectWhereInput {
-			return q, nil
-		}
-		return nil, err
-	}
-	return q.Where(p), nil
-}
-
-// ErrEmptySubjectWhereInput is returned in case the SubjectWhereInput is empty.
-var ErrEmptySubjectWhereInput = errors.New("ent: empty predicate SubjectWhereInput")
-
-// P returns a predicate for filtering subjects.
-// An error is returned if the input is empty or invalid.
-func (i *SubjectWhereInput) P() (predicate.Subject, error) {
-	var predicates []predicate.Subject
-	if i.Not != nil {
-		p, err := i.Not.P()
-		if err != nil {
-			return nil, fmt.Errorf("%w: field 'not'", err)
-		}
-		predicates = append(predicates, subject.Not(p))
-	}
-	switch n := len(i.Or); {
-	case n == 1:
-		p, err := i.Or[0].P()
-		if err != nil {
-			return nil, fmt.Errorf("%w: field 'or'", err)
-		}
-		predicates = append(predicates, p)
-	case n > 1:
-		or := make([]predicate.Subject, 0, n)
-		for _, w := range i.Or {
-			p, err := w.P()
-			if err != nil {
-				return nil, fmt.Errorf("%w: field 'or'", err)
-			}
-			or = append(or, p)
-		}
-		predicates = append(predicates, subject.Or(or...))
-	}
-	switch n := len(i.And); {
-	case n == 1:
-		p, err := i.And[0].P()
-		if err != nil {
-			return nil, fmt.Errorf("%w: field 'and'", err)
-		}
-		predicates = append(predicates, p)
-	case n > 1:
-		and := make([]predicate.Subject, 0, n)
-		for _, w := range i.And {
-			p, err := w.P()
-			if err != nil {
-				return nil, fmt.Errorf("%w: field 'and'", err)
-			}
-			and = append(and, p)
-		}
-		predicates = append(predicates, subject.And(and...))
-	}
-	predicates = append(predicates, i.Predicates...)
-	if i.ID != nil {
-		predicates = append(predicates, subject.IDEQ(*i.ID))
-	}
-	if i.IDNEQ != nil {
-		predicates = append(predicates, subject.IDNEQ(*i.IDNEQ))
-	}
-	if len(i.IDIn) > 0 {
-		predicates = append(predicates, subject.IDIn(i.IDIn...))
-	}
-	if len(i.IDNotIn) > 0 {
-		predicates = append(predicates, subject.IDNotIn(i.IDNotIn...))
-	}
-	if i.IDGT != nil {
-		predicates = append(predicates, subject.IDGT(*i.IDGT))
-	}
-	if i.IDGTE != nil {
-		predicates = append(predicates, subject.IDGTE(*i.IDGTE))
-	}
-	if i.IDLT != nil {
-		predicates = append(predicates, subject.IDLT(*i.IDLT))
-	}
-	if i.IDLTE != nil {
-		predicates = append(predicates, subject.IDLTE(*i.IDLTE))
-	}
-	if i.SubjectType != nil {
-		predicates = append(predicates, subject.SubjectTypeEQ(*i.SubjectType))
-	}
-	if i.SubjectTypeNEQ != nil {
-		predicates = append(predicates, subject.SubjectTypeNEQ(*i.SubjectTypeNEQ))
-	}
-	if len(i.SubjectTypeIn) > 0 {
-		predicates = append(predicates, subject.SubjectTypeIn(i.SubjectTypeIn...))
-	}
-	if len(i.SubjectTypeNotIn) > 0 {
-		predicates = append(predicates, subject.SubjectTypeNotIn(i.SubjectTypeNotIn...))
-	}
-	if i.SubjectTypeGT != nil {
-		predicates = append(predicates, subject.SubjectTypeGT(*i.SubjectTypeGT))
-	}
-	if i.SubjectTypeGTE != nil {
-		predicates = append(predicates, subject.SubjectTypeGTE(*i.SubjectTypeGTE))
-	}
-	if i.SubjectTypeLT != nil {
-		predicates = append(predicates, subject.SubjectTypeLT(*i.SubjectTypeLT))
-	}
-	if i.SubjectTypeLTE != nil {
-		predicates = append(predicates, subject.SubjectTypeLTE(*i.SubjectTypeLTE))
-	}
-	if i.SubjectTypeContains != nil {
-		predicates = append(predicates, subject.SubjectTypeContains(*i.SubjectTypeContains))
-	}
-	if i.SubjectTypeHasPrefix != nil {
-		predicates = append(predicates, subject.SubjectTypeHasPrefix(*i.SubjectTypeHasPrefix))
-	}
-	if i.SubjectTypeHasSuffix != nil {
-		predicates = append(predicates, subject.SubjectTypeHasSuffix(*i.SubjectTypeHasSuffix))
-	}
-	if i.SubjectTypeEqualFold != nil {
-		predicates = append(predicates, subject.SubjectTypeEqualFold(*i.SubjectTypeEqualFold))
-	}
-	if i.SubjectTypeContainsFold != nil {
-		predicates = append(predicates, subject.SubjectTypeContainsFold(*i.SubjectTypeContainsFold))
-	}
-
-	if i.HasStatement != nil {
-		p := subject.HasStatement()
-		if !*i.HasStatement {
-			p = subject.Not(p)
-		}
-		predicates = append(predicates, p)
-	}
-	if len(i.HasStatementWith) > 0 {
-		with := make([]predicate.Statement, 0, len(i.HasStatementWith))
-		for _, w := range i.HasStatementWith {
-			p, err := w.P()
-			if err != nil {
-				return nil, fmt.Errorf("%w: field 'HasStatementWith'", err)
-			}
-			with = append(with, p)
-		}
-		predicates = append(predicates, subject.HasStatementWith(with...))
-	}
-	switch len(predicates) {
-	case 0:
-		return nil, ErrEmptySubjectWhereInput
-	case 1:
-		return predicates[0], nil
-	default:
-		return subject.And(predicates...), nil
 	}
 }

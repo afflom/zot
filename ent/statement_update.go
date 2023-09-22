@@ -10,11 +10,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"zotregistry.io/zot/ent/object"
+	"zotregistry.io/zot/ent/element"
 	"zotregistry.io/zot/ent/predicate"
-	"zotregistry.io/zot/ent/spredicate"
 	"zotregistry.io/zot/ent/statement"
-	"zotregistry.io/zot/ent/subject"
 )
 
 // StatementUpdate is the builder for updating Statement entities.
@@ -30,61 +28,70 @@ func (su *StatementUpdate) Where(ps ...predicate.Statement) *StatementUpdate {
 	return su
 }
 
-// SetNamespace sets the "namespace" field.
-func (su *StatementUpdate) SetNamespace(s string) *StatementUpdate {
-	su.mutation.SetNamespace(s)
+// SetMediaType sets the "mediaType" field.
+func (su *StatementUpdate) SetMediaType(s string) *StatementUpdate {
+	su.mutation.SetMediaType(s)
 	return su
 }
 
-// SetStatement sets the "statement" field.
-func (su *StatementUpdate) SetStatement(m map[string]interface{}) *StatementUpdate {
-	su.mutation.SetStatement(m)
-	return su
-}
-
-// AddObjectIDs adds the "objects" edge to the Object entity by IDs.
+// AddObjectIDs adds the "objects" edge to the Element entity by IDs.
 func (su *StatementUpdate) AddObjectIDs(ids ...int) *StatementUpdate {
 	su.mutation.AddObjectIDs(ids...)
 	return su
 }
 
-// AddObjects adds the "objects" edges to the Object entity.
-func (su *StatementUpdate) AddObjects(o ...*Object) *StatementUpdate {
-	ids := make([]int, len(o))
-	for i := range o {
-		ids[i] = o[i].ID
+// AddObjects adds the "objects" edges to the Element entity.
+func (su *StatementUpdate) AddObjects(e ...*Element) *StatementUpdate {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
 	}
 	return su.AddObjectIDs(ids...)
 }
 
-// AddPredicateIDs adds the "predicates" edge to the Spredicate entity by IDs.
+// AddPredicateIDs adds the "predicates" edge to the Element entity by IDs.
 func (su *StatementUpdate) AddPredicateIDs(ids ...int) *StatementUpdate {
 	su.mutation.AddPredicateIDs(ids...)
 	return su
 }
 
-// AddPredicates adds the "predicates" edges to the Spredicate entity.
-func (su *StatementUpdate) AddPredicates(s ...*Spredicate) *StatementUpdate {
-	ids := make([]int, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+// AddPredicates adds the "predicates" edges to the Element entity.
+func (su *StatementUpdate) AddPredicates(e ...*Element) *StatementUpdate {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
 	}
 	return su.AddPredicateIDs(ids...)
 }
 
-// AddSubjectIDs adds the "subjects" edge to the Subject entity by IDs.
+// AddSubjectIDs adds the "subjects" edge to the Element entity by IDs.
 func (su *StatementUpdate) AddSubjectIDs(ids ...int) *StatementUpdate {
 	su.mutation.AddSubjectIDs(ids...)
 	return su
 }
 
-// AddSubjects adds the "subjects" edges to the Subject entity.
-func (su *StatementUpdate) AddSubjects(s ...*Subject) *StatementUpdate {
-	ids := make([]int, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+// AddSubjects adds the "subjects" edges to the Element entity.
+func (su *StatementUpdate) AddSubjects(e ...*Element) *StatementUpdate {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
 	}
 	return su.AddSubjectIDs(ids...)
+}
+
+// AddStatementIDs adds the "statements" edge to the Element entity by IDs.
+func (su *StatementUpdate) AddStatementIDs(ids ...int) *StatementUpdate {
+	su.mutation.AddStatementIDs(ids...)
+	return su
+}
+
+// AddStatements adds the "statements" edges to the Element entity.
+func (su *StatementUpdate) AddStatements(e ...*Element) *StatementUpdate {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return su.AddStatementIDs(ids...)
 }
 
 // Mutation returns the StatementMutation object of the builder.
@@ -92,67 +99,88 @@ func (su *StatementUpdate) Mutation() *StatementMutation {
 	return su.mutation
 }
 
-// ClearObjects clears all "objects" edges to the Object entity.
+// ClearObjects clears all "objects" edges to the Element entity.
 func (su *StatementUpdate) ClearObjects() *StatementUpdate {
 	su.mutation.ClearObjects()
 	return su
 }
 
-// RemoveObjectIDs removes the "objects" edge to Object entities by IDs.
+// RemoveObjectIDs removes the "objects" edge to Element entities by IDs.
 func (su *StatementUpdate) RemoveObjectIDs(ids ...int) *StatementUpdate {
 	su.mutation.RemoveObjectIDs(ids...)
 	return su
 }
 
-// RemoveObjects removes "objects" edges to Object entities.
-func (su *StatementUpdate) RemoveObjects(o ...*Object) *StatementUpdate {
-	ids := make([]int, len(o))
-	for i := range o {
-		ids[i] = o[i].ID
+// RemoveObjects removes "objects" edges to Element entities.
+func (su *StatementUpdate) RemoveObjects(e ...*Element) *StatementUpdate {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
 	}
 	return su.RemoveObjectIDs(ids...)
 }
 
-// ClearPredicates clears all "predicates" edges to the Spredicate entity.
+// ClearPredicates clears all "predicates" edges to the Element entity.
 func (su *StatementUpdate) ClearPredicates() *StatementUpdate {
 	su.mutation.ClearPredicates()
 	return su
 }
 
-// RemovePredicateIDs removes the "predicates" edge to Spredicate entities by IDs.
+// RemovePredicateIDs removes the "predicates" edge to Element entities by IDs.
 func (su *StatementUpdate) RemovePredicateIDs(ids ...int) *StatementUpdate {
 	su.mutation.RemovePredicateIDs(ids...)
 	return su
 }
 
-// RemovePredicates removes "predicates" edges to Spredicate entities.
-func (su *StatementUpdate) RemovePredicates(s ...*Spredicate) *StatementUpdate {
-	ids := make([]int, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+// RemovePredicates removes "predicates" edges to Element entities.
+func (su *StatementUpdate) RemovePredicates(e ...*Element) *StatementUpdate {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
 	}
 	return su.RemovePredicateIDs(ids...)
 }
 
-// ClearSubjects clears all "subjects" edges to the Subject entity.
+// ClearSubjects clears all "subjects" edges to the Element entity.
 func (su *StatementUpdate) ClearSubjects() *StatementUpdate {
 	su.mutation.ClearSubjects()
 	return su
 }
 
-// RemoveSubjectIDs removes the "subjects" edge to Subject entities by IDs.
+// RemoveSubjectIDs removes the "subjects" edge to Element entities by IDs.
 func (su *StatementUpdate) RemoveSubjectIDs(ids ...int) *StatementUpdate {
 	su.mutation.RemoveSubjectIDs(ids...)
 	return su
 }
 
-// RemoveSubjects removes "subjects" edges to Subject entities.
-func (su *StatementUpdate) RemoveSubjects(s ...*Subject) *StatementUpdate {
-	ids := make([]int, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+// RemoveSubjects removes "subjects" edges to Element entities.
+func (su *StatementUpdate) RemoveSubjects(e ...*Element) *StatementUpdate {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
 	}
 	return su.RemoveSubjectIDs(ids...)
+}
+
+// ClearStatements clears all "statements" edges to the Element entity.
+func (su *StatementUpdate) ClearStatements() *StatementUpdate {
+	su.mutation.ClearStatements()
+	return su
+}
+
+// RemoveStatementIDs removes the "statements" edge to Element entities by IDs.
+func (su *StatementUpdate) RemoveStatementIDs(ids ...int) *StatementUpdate {
+	su.mutation.RemoveStatementIDs(ids...)
+	return su
+}
+
+// RemoveStatements removes "statements" edges to Element entities.
+func (su *StatementUpdate) RemoveStatements(e ...*Element) *StatementUpdate {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return su.RemoveStatementIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -191,34 +219,31 @@ func (su *StatementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
-	if value, ok := su.mutation.Namespace(); ok {
-		_spec.SetField(statement.FieldNamespace, field.TypeString, value)
-	}
-	if value, ok := su.mutation.Statement(); ok {
-		_spec.SetField(statement.FieldStatement, field.TypeJSON, value)
+	if value, ok := su.mutation.MediaType(); ok {
+		_spec.SetField(statement.FieldMediaType, field.TypeString, value)
 	}
 	if su.mutation.ObjectsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.ObjectsTable,
-			Columns: statement.ObjectsPrimaryKey,
+			Columns: []string{statement.ObjectsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(object.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := su.mutation.RemovedObjectsIDs(); len(nodes) > 0 && !su.mutation.ObjectsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.ObjectsTable,
-			Columns: statement.ObjectsPrimaryKey,
+			Columns: []string{statement.ObjectsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(object.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -228,13 +253,13 @@ func (su *StatementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if nodes := su.mutation.ObjectsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.ObjectsTable,
-			Columns: statement.ObjectsPrimaryKey,
+			Columns: []string{statement.ObjectsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(object.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -244,26 +269,26 @@ func (su *StatementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if su.mutation.PredicatesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.PredicatesTable,
-			Columns: statement.PredicatesPrimaryKey,
+			Columns: []string{statement.PredicatesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(spredicate.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := su.mutation.RemovedPredicatesIDs(); len(nodes) > 0 && !su.mutation.PredicatesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.PredicatesTable,
-			Columns: statement.PredicatesPrimaryKey,
+			Columns: []string{statement.PredicatesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(spredicate.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -273,13 +298,13 @@ func (su *StatementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if nodes := su.mutation.PredicatesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.PredicatesTable,
-			Columns: statement.PredicatesPrimaryKey,
+			Columns: []string{statement.PredicatesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(spredicate.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -289,26 +314,26 @@ func (su *StatementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if su.mutation.SubjectsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.SubjectsTable,
-			Columns: statement.SubjectsPrimaryKey,
+			Columns: []string{statement.SubjectsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subject.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := su.mutation.RemovedSubjectsIDs(); len(nodes) > 0 && !su.mutation.SubjectsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.SubjectsTable,
-			Columns: statement.SubjectsPrimaryKey,
+			Columns: []string{statement.SubjectsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subject.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -318,13 +343,58 @@ func (su *StatementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if nodes := su.mutation.SubjectsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.SubjectsTable,
-			Columns: statement.SubjectsPrimaryKey,
+			Columns: []string{statement.SubjectsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subject.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if su.mutation.StatementsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   statement.StatementsTable,
+			Columns: []string{statement.StatementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.RemovedStatementsIDs(); len(nodes) > 0 && !su.mutation.StatementsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   statement.StatementsTable,
+			Columns: []string{statement.StatementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.StatementsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   statement.StatementsTable,
+			Columns: []string{statement.StatementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -352,61 +422,70 @@ type StatementUpdateOne struct {
 	mutation *StatementMutation
 }
 
-// SetNamespace sets the "namespace" field.
-func (suo *StatementUpdateOne) SetNamespace(s string) *StatementUpdateOne {
-	suo.mutation.SetNamespace(s)
+// SetMediaType sets the "mediaType" field.
+func (suo *StatementUpdateOne) SetMediaType(s string) *StatementUpdateOne {
+	suo.mutation.SetMediaType(s)
 	return suo
 }
 
-// SetStatement sets the "statement" field.
-func (suo *StatementUpdateOne) SetStatement(m map[string]interface{}) *StatementUpdateOne {
-	suo.mutation.SetStatement(m)
-	return suo
-}
-
-// AddObjectIDs adds the "objects" edge to the Object entity by IDs.
+// AddObjectIDs adds the "objects" edge to the Element entity by IDs.
 func (suo *StatementUpdateOne) AddObjectIDs(ids ...int) *StatementUpdateOne {
 	suo.mutation.AddObjectIDs(ids...)
 	return suo
 }
 
-// AddObjects adds the "objects" edges to the Object entity.
-func (suo *StatementUpdateOne) AddObjects(o ...*Object) *StatementUpdateOne {
-	ids := make([]int, len(o))
-	for i := range o {
-		ids[i] = o[i].ID
+// AddObjects adds the "objects" edges to the Element entity.
+func (suo *StatementUpdateOne) AddObjects(e ...*Element) *StatementUpdateOne {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
 	}
 	return suo.AddObjectIDs(ids...)
 }
 
-// AddPredicateIDs adds the "predicates" edge to the Spredicate entity by IDs.
+// AddPredicateIDs adds the "predicates" edge to the Element entity by IDs.
 func (suo *StatementUpdateOne) AddPredicateIDs(ids ...int) *StatementUpdateOne {
 	suo.mutation.AddPredicateIDs(ids...)
 	return suo
 }
 
-// AddPredicates adds the "predicates" edges to the Spredicate entity.
-func (suo *StatementUpdateOne) AddPredicates(s ...*Spredicate) *StatementUpdateOne {
-	ids := make([]int, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+// AddPredicates adds the "predicates" edges to the Element entity.
+func (suo *StatementUpdateOne) AddPredicates(e ...*Element) *StatementUpdateOne {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
 	}
 	return suo.AddPredicateIDs(ids...)
 }
 
-// AddSubjectIDs adds the "subjects" edge to the Subject entity by IDs.
+// AddSubjectIDs adds the "subjects" edge to the Element entity by IDs.
 func (suo *StatementUpdateOne) AddSubjectIDs(ids ...int) *StatementUpdateOne {
 	suo.mutation.AddSubjectIDs(ids...)
 	return suo
 }
 
-// AddSubjects adds the "subjects" edges to the Subject entity.
-func (suo *StatementUpdateOne) AddSubjects(s ...*Subject) *StatementUpdateOne {
-	ids := make([]int, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+// AddSubjects adds the "subjects" edges to the Element entity.
+func (suo *StatementUpdateOne) AddSubjects(e ...*Element) *StatementUpdateOne {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
 	}
 	return suo.AddSubjectIDs(ids...)
+}
+
+// AddStatementIDs adds the "statements" edge to the Element entity by IDs.
+func (suo *StatementUpdateOne) AddStatementIDs(ids ...int) *StatementUpdateOne {
+	suo.mutation.AddStatementIDs(ids...)
+	return suo
+}
+
+// AddStatements adds the "statements" edges to the Element entity.
+func (suo *StatementUpdateOne) AddStatements(e ...*Element) *StatementUpdateOne {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return suo.AddStatementIDs(ids...)
 }
 
 // Mutation returns the StatementMutation object of the builder.
@@ -414,67 +493,88 @@ func (suo *StatementUpdateOne) Mutation() *StatementMutation {
 	return suo.mutation
 }
 
-// ClearObjects clears all "objects" edges to the Object entity.
+// ClearObjects clears all "objects" edges to the Element entity.
 func (suo *StatementUpdateOne) ClearObjects() *StatementUpdateOne {
 	suo.mutation.ClearObjects()
 	return suo
 }
 
-// RemoveObjectIDs removes the "objects" edge to Object entities by IDs.
+// RemoveObjectIDs removes the "objects" edge to Element entities by IDs.
 func (suo *StatementUpdateOne) RemoveObjectIDs(ids ...int) *StatementUpdateOne {
 	suo.mutation.RemoveObjectIDs(ids...)
 	return suo
 }
 
-// RemoveObjects removes "objects" edges to Object entities.
-func (suo *StatementUpdateOne) RemoveObjects(o ...*Object) *StatementUpdateOne {
-	ids := make([]int, len(o))
-	for i := range o {
-		ids[i] = o[i].ID
+// RemoveObjects removes "objects" edges to Element entities.
+func (suo *StatementUpdateOne) RemoveObjects(e ...*Element) *StatementUpdateOne {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
 	}
 	return suo.RemoveObjectIDs(ids...)
 }
 
-// ClearPredicates clears all "predicates" edges to the Spredicate entity.
+// ClearPredicates clears all "predicates" edges to the Element entity.
 func (suo *StatementUpdateOne) ClearPredicates() *StatementUpdateOne {
 	suo.mutation.ClearPredicates()
 	return suo
 }
 
-// RemovePredicateIDs removes the "predicates" edge to Spredicate entities by IDs.
+// RemovePredicateIDs removes the "predicates" edge to Element entities by IDs.
 func (suo *StatementUpdateOne) RemovePredicateIDs(ids ...int) *StatementUpdateOne {
 	suo.mutation.RemovePredicateIDs(ids...)
 	return suo
 }
 
-// RemovePredicates removes "predicates" edges to Spredicate entities.
-func (suo *StatementUpdateOne) RemovePredicates(s ...*Spredicate) *StatementUpdateOne {
-	ids := make([]int, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+// RemovePredicates removes "predicates" edges to Element entities.
+func (suo *StatementUpdateOne) RemovePredicates(e ...*Element) *StatementUpdateOne {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
 	}
 	return suo.RemovePredicateIDs(ids...)
 }
 
-// ClearSubjects clears all "subjects" edges to the Subject entity.
+// ClearSubjects clears all "subjects" edges to the Element entity.
 func (suo *StatementUpdateOne) ClearSubjects() *StatementUpdateOne {
 	suo.mutation.ClearSubjects()
 	return suo
 }
 
-// RemoveSubjectIDs removes the "subjects" edge to Subject entities by IDs.
+// RemoveSubjectIDs removes the "subjects" edge to Element entities by IDs.
 func (suo *StatementUpdateOne) RemoveSubjectIDs(ids ...int) *StatementUpdateOne {
 	suo.mutation.RemoveSubjectIDs(ids...)
 	return suo
 }
 
-// RemoveSubjects removes "subjects" edges to Subject entities.
-func (suo *StatementUpdateOne) RemoveSubjects(s ...*Subject) *StatementUpdateOne {
-	ids := make([]int, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+// RemoveSubjects removes "subjects" edges to Element entities.
+func (suo *StatementUpdateOne) RemoveSubjects(e ...*Element) *StatementUpdateOne {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
 	}
 	return suo.RemoveSubjectIDs(ids...)
+}
+
+// ClearStatements clears all "statements" edges to the Element entity.
+func (suo *StatementUpdateOne) ClearStatements() *StatementUpdateOne {
+	suo.mutation.ClearStatements()
+	return suo
+}
+
+// RemoveStatementIDs removes the "statements" edge to Element entities by IDs.
+func (suo *StatementUpdateOne) RemoveStatementIDs(ids ...int) *StatementUpdateOne {
+	suo.mutation.RemoveStatementIDs(ids...)
+	return suo
+}
+
+// RemoveStatements removes "statements" edges to Element entities.
+func (suo *StatementUpdateOne) RemoveStatements(e ...*Element) *StatementUpdateOne {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return suo.RemoveStatementIDs(ids...)
 }
 
 // Where appends a list predicates to the StatementUpdate builder.
@@ -543,34 +643,31 @@ func (suo *StatementUpdateOne) sqlSave(ctx context.Context) (_node *Statement, e
 			}
 		}
 	}
-	if value, ok := suo.mutation.Namespace(); ok {
-		_spec.SetField(statement.FieldNamespace, field.TypeString, value)
-	}
-	if value, ok := suo.mutation.Statement(); ok {
-		_spec.SetField(statement.FieldStatement, field.TypeJSON, value)
+	if value, ok := suo.mutation.MediaType(); ok {
+		_spec.SetField(statement.FieldMediaType, field.TypeString, value)
 	}
 	if suo.mutation.ObjectsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.ObjectsTable,
-			Columns: statement.ObjectsPrimaryKey,
+			Columns: []string{statement.ObjectsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(object.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := suo.mutation.RemovedObjectsIDs(); len(nodes) > 0 && !suo.mutation.ObjectsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.ObjectsTable,
-			Columns: statement.ObjectsPrimaryKey,
+			Columns: []string{statement.ObjectsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(object.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -580,13 +677,13 @@ func (suo *StatementUpdateOne) sqlSave(ctx context.Context) (_node *Statement, e
 	}
 	if nodes := suo.mutation.ObjectsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.ObjectsTable,
-			Columns: statement.ObjectsPrimaryKey,
+			Columns: []string{statement.ObjectsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(object.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -596,26 +693,26 @@ func (suo *StatementUpdateOne) sqlSave(ctx context.Context) (_node *Statement, e
 	}
 	if suo.mutation.PredicatesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.PredicatesTable,
-			Columns: statement.PredicatesPrimaryKey,
+			Columns: []string{statement.PredicatesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(spredicate.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := suo.mutation.RemovedPredicatesIDs(); len(nodes) > 0 && !suo.mutation.PredicatesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.PredicatesTable,
-			Columns: statement.PredicatesPrimaryKey,
+			Columns: []string{statement.PredicatesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(spredicate.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -625,13 +722,13 @@ func (suo *StatementUpdateOne) sqlSave(ctx context.Context) (_node *Statement, e
 	}
 	if nodes := suo.mutation.PredicatesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.PredicatesTable,
-			Columns: statement.PredicatesPrimaryKey,
+			Columns: []string{statement.PredicatesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(spredicate.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -641,26 +738,26 @@ func (suo *StatementUpdateOne) sqlSave(ctx context.Context) (_node *Statement, e
 	}
 	if suo.mutation.SubjectsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.SubjectsTable,
-			Columns: statement.SubjectsPrimaryKey,
+			Columns: []string{statement.SubjectsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subject.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := suo.mutation.RemovedSubjectsIDs(); len(nodes) > 0 && !suo.mutation.SubjectsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.SubjectsTable,
-			Columns: statement.SubjectsPrimaryKey,
+			Columns: []string{statement.SubjectsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subject.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -670,13 +767,58 @@ func (suo *StatementUpdateOne) sqlSave(ctx context.Context) (_node *Statement, e
 	}
 	if nodes := suo.mutation.SubjectsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.SubjectsTable,
-			Columns: statement.SubjectsPrimaryKey,
+			Columns: []string{statement.SubjectsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subject.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if suo.mutation.StatementsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   statement.StatementsTable,
+			Columns: []string{statement.StatementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.RemovedStatementsIDs(); len(nodes) > 0 && !suo.mutation.StatementsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   statement.StatementsTable,
+			Columns: []string{statement.StatementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.StatementsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   statement.StatementsTable,
+			Columns: []string{statement.StatementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

@@ -9,28 +9,28 @@ import (
 	"zotregistry.io/zot/ent"
 )
 
-// The ObjectFunc type is an adapter to allow the use of ordinary
-// function as Object mutator.
-type ObjectFunc func(context.Context, *ent.ObjectMutation) (ent.Value, error)
+// The ElementFunc type is an adapter to allow the use of ordinary
+// function as Element mutator.
+type ElementFunc func(context.Context, *ent.ElementMutation) (ent.Value, error)
 
 // Mutate calls f(ctx, m).
-func (f ObjectFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.ObjectMutation); ok {
+func (f ElementFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ElementMutation); ok {
 		return f(ctx, mv)
 	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ObjectMutation", m)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ElementMutation", m)
 }
 
-// The SpredicateFunc type is an adapter to allow the use of ordinary
-// function as Spredicate mutator.
-type SpredicateFunc func(context.Context, *ent.SpredicateMutation) (ent.Value, error)
+// The ResourceFunc type is an adapter to allow the use of ordinary
+// function as Resource mutator.
+type ResourceFunc func(context.Context, *ent.ResourceMutation) (ent.Value, error)
 
 // Mutate calls f(ctx, m).
-func (f SpredicateFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.SpredicateMutation); ok {
+func (f ResourceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ResourceMutation); ok {
 		return f(ctx, mv)
 	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SpredicateMutation", m)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ResourceMutation", m)
 }
 
 // The StatementFunc type is an adapter to allow the use of ordinary
@@ -43,18 +43,6 @@ func (f StatementFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, e
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StatementMutation", m)
-}
-
-// The SubjectFunc type is an adapter to allow the use of ordinary
-// function as Subject mutator.
-type SubjectFunc func(context.Context, *ent.SubjectMutation) (ent.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f SubjectFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.SubjectMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SubjectMutation", m)
 }
 
 // Condition is a hook condition function.

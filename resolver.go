@@ -1,13 +1,8 @@
 package zot
 
 import (
-	"context"
-	"fmt"
-
-	"entgo.io/ent/dialect/sql"
 	"github.com/99designs/gqlgen/graphql"
 	"zotregistry.io/zot/ent"
-	"zotregistry.io/zot/ent/predicate"
 )
 
 // This file will not be regenerated automatically.
@@ -24,20 +19,20 @@ func NewSchema(client *ent.Client) graphql.ExecutableSchema {
 	})
 }
 
+/*
 const jsonPathKey = "jsonPath"
 
-func (r *statementWhereInputResolver) JsonPath(ctx context.Context, obj *ent.StatementWhereInput, data *string) error {
-	cctx := ctx.(*CustomContext)
-	cctx.JsonPath = data
-	return nil
-}
+	func (r *statementWhereInputResolver) JsonPath(ctx context.Context, obj *ent.StatementWhereInput, data *string) error {
+		cctx := ctx.(*CustomContext)
+		cctx.JsonPath = data
+		return nil
+	}
 
-func (r *statementWhereInputResolver) JsonValue(ctx context.Context, obj *ent.StatementWhereInput, data *string) error {
-	cctx := ctx.(*CustomContext)
-	cctx.JsonValue = data
-	return nil
-}
-
+	func (r *statementWhereInputResolver) JsonValue(ctx context.Context, obj *ent.StatementWhereInput, data *string) error {
+		cctx := ctx.(*CustomContext)
+		cctx.JsonValue = data
+		return nil
+	}
 type CustomContext struct {
 	context.Context
 	JsonPath  *string
@@ -121,3 +116,5 @@ func PredicateHasJSONValue(column, path, value string) predicate.Spredicate {
 		selector.Where(customPredicate.P())
 	}
 }
+
+*/

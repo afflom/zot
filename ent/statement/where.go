@@ -53,74 +53,74 @@ func IDLTE(id int) predicate.Statement {
 	return predicate.Statement(sql.FieldLTE(FieldID, id))
 }
 
-// Namespace applies equality check predicate on the "namespace" field. It's identical to NamespaceEQ.
-func Namespace(v string) predicate.Statement {
-	return predicate.Statement(sql.FieldEQ(FieldNamespace, v))
+// MediaType applies equality check predicate on the "mediaType" field. It's identical to MediaTypeEQ.
+func MediaType(v string) predicate.Statement {
+	return predicate.Statement(sql.FieldEQ(FieldMediaType, v))
 }
 
-// NamespaceEQ applies the EQ predicate on the "namespace" field.
-func NamespaceEQ(v string) predicate.Statement {
-	return predicate.Statement(sql.FieldEQ(FieldNamespace, v))
+// MediaTypeEQ applies the EQ predicate on the "mediaType" field.
+func MediaTypeEQ(v string) predicate.Statement {
+	return predicate.Statement(sql.FieldEQ(FieldMediaType, v))
 }
 
-// NamespaceNEQ applies the NEQ predicate on the "namespace" field.
-func NamespaceNEQ(v string) predicate.Statement {
-	return predicate.Statement(sql.FieldNEQ(FieldNamespace, v))
+// MediaTypeNEQ applies the NEQ predicate on the "mediaType" field.
+func MediaTypeNEQ(v string) predicate.Statement {
+	return predicate.Statement(sql.FieldNEQ(FieldMediaType, v))
 }
 
-// NamespaceIn applies the In predicate on the "namespace" field.
-func NamespaceIn(vs ...string) predicate.Statement {
-	return predicate.Statement(sql.FieldIn(FieldNamespace, vs...))
+// MediaTypeIn applies the In predicate on the "mediaType" field.
+func MediaTypeIn(vs ...string) predicate.Statement {
+	return predicate.Statement(sql.FieldIn(FieldMediaType, vs...))
 }
 
-// NamespaceNotIn applies the NotIn predicate on the "namespace" field.
-func NamespaceNotIn(vs ...string) predicate.Statement {
-	return predicate.Statement(sql.FieldNotIn(FieldNamespace, vs...))
+// MediaTypeNotIn applies the NotIn predicate on the "mediaType" field.
+func MediaTypeNotIn(vs ...string) predicate.Statement {
+	return predicate.Statement(sql.FieldNotIn(FieldMediaType, vs...))
 }
 
-// NamespaceGT applies the GT predicate on the "namespace" field.
-func NamespaceGT(v string) predicate.Statement {
-	return predicate.Statement(sql.FieldGT(FieldNamespace, v))
+// MediaTypeGT applies the GT predicate on the "mediaType" field.
+func MediaTypeGT(v string) predicate.Statement {
+	return predicate.Statement(sql.FieldGT(FieldMediaType, v))
 }
 
-// NamespaceGTE applies the GTE predicate on the "namespace" field.
-func NamespaceGTE(v string) predicate.Statement {
-	return predicate.Statement(sql.FieldGTE(FieldNamespace, v))
+// MediaTypeGTE applies the GTE predicate on the "mediaType" field.
+func MediaTypeGTE(v string) predicate.Statement {
+	return predicate.Statement(sql.FieldGTE(FieldMediaType, v))
 }
 
-// NamespaceLT applies the LT predicate on the "namespace" field.
-func NamespaceLT(v string) predicate.Statement {
-	return predicate.Statement(sql.FieldLT(FieldNamespace, v))
+// MediaTypeLT applies the LT predicate on the "mediaType" field.
+func MediaTypeLT(v string) predicate.Statement {
+	return predicate.Statement(sql.FieldLT(FieldMediaType, v))
 }
 
-// NamespaceLTE applies the LTE predicate on the "namespace" field.
-func NamespaceLTE(v string) predicate.Statement {
-	return predicate.Statement(sql.FieldLTE(FieldNamespace, v))
+// MediaTypeLTE applies the LTE predicate on the "mediaType" field.
+func MediaTypeLTE(v string) predicate.Statement {
+	return predicate.Statement(sql.FieldLTE(FieldMediaType, v))
 }
 
-// NamespaceContains applies the Contains predicate on the "namespace" field.
-func NamespaceContains(v string) predicate.Statement {
-	return predicate.Statement(sql.FieldContains(FieldNamespace, v))
+// MediaTypeContains applies the Contains predicate on the "mediaType" field.
+func MediaTypeContains(v string) predicate.Statement {
+	return predicate.Statement(sql.FieldContains(FieldMediaType, v))
 }
 
-// NamespaceHasPrefix applies the HasPrefix predicate on the "namespace" field.
-func NamespaceHasPrefix(v string) predicate.Statement {
-	return predicate.Statement(sql.FieldHasPrefix(FieldNamespace, v))
+// MediaTypeHasPrefix applies the HasPrefix predicate on the "mediaType" field.
+func MediaTypeHasPrefix(v string) predicate.Statement {
+	return predicate.Statement(sql.FieldHasPrefix(FieldMediaType, v))
 }
 
-// NamespaceHasSuffix applies the HasSuffix predicate on the "namespace" field.
-func NamespaceHasSuffix(v string) predicate.Statement {
-	return predicate.Statement(sql.FieldHasSuffix(FieldNamespace, v))
+// MediaTypeHasSuffix applies the HasSuffix predicate on the "mediaType" field.
+func MediaTypeHasSuffix(v string) predicate.Statement {
+	return predicate.Statement(sql.FieldHasSuffix(FieldMediaType, v))
 }
 
-// NamespaceEqualFold applies the EqualFold predicate on the "namespace" field.
-func NamespaceEqualFold(v string) predicate.Statement {
-	return predicate.Statement(sql.FieldEqualFold(FieldNamespace, v))
+// MediaTypeEqualFold applies the EqualFold predicate on the "mediaType" field.
+func MediaTypeEqualFold(v string) predicate.Statement {
+	return predicate.Statement(sql.FieldEqualFold(FieldMediaType, v))
 }
 
-// NamespaceContainsFold applies the ContainsFold predicate on the "namespace" field.
-func NamespaceContainsFold(v string) predicate.Statement {
-	return predicate.Statement(sql.FieldContainsFold(FieldNamespace, v))
+// MediaTypeContainsFold applies the ContainsFold predicate on the "mediaType" field.
+func MediaTypeContainsFold(v string) predicate.Statement {
+	return predicate.Statement(sql.FieldContainsFold(FieldMediaType, v))
 }
 
 // HasObjects applies the HasEdge predicate on the "objects" edge.
@@ -128,14 +128,14 @@ func HasObjects() predicate.Statement {
 	return predicate.Statement(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, ObjectsTable, ObjectsPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, ObjectsTable, ObjectsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
 // HasObjectsWith applies the HasEdge predicate on the "objects" edge with a given conditions (other predicates).
-func HasObjectsWith(preds ...predicate.Object) predicate.Statement {
+func HasObjectsWith(preds ...predicate.Element) predicate.Statement {
 	return predicate.Statement(func(s *sql.Selector) {
 		step := newObjectsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
@@ -151,14 +151,14 @@ func HasPredicates() predicate.Statement {
 	return predicate.Statement(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, PredicatesTable, PredicatesPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, PredicatesTable, PredicatesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
 // HasPredicatesWith applies the HasEdge predicate on the "predicates" edge with a given conditions (other predicates).
-func HasPredicatesWith(preds ...predicate.Spredicate) predicate.Statement {
+func HasPredicatesWith(preds ...predicate.Element) predicate.Statement {
 	return predicate.Statement(func(s *sql.Selector) {
 		step := newPredicatesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
@@ -174,16 +174,39 @@ func HasSubjects() predicate.Statement {
 	return predicate.Statement(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, SubjectsTable, SubjectsPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, SubjectsTable, SubjectsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
 // HasSubjectsWith applies the HasEdge predicate on the "subjects" edge with a given conditions (other predicates).
-func HasSubjectsWith(preds ...predicate.Subject) predicate.Statement {
+func HasSubjectsWith(preds ...predicate.Element) predicate.Statement {
 	return predicate.Statement(func(s *sql.Selector) {
 		step := newSubjectsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasStatements applies the HasEdge predicate on the "statements" edge.
+func HasStatements() predicate.Statement {
+	return predicate.Statement(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, StatementsTable, StatementsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasStatementsWith applies the HasEdge predicate on the "statements" edge with a given conditions (other predicates).
+func HasStatementsWith(preds ...predicate.Element) predicate.Statement {
+	return predicate.Statement(func(s *sql.Selector) {
+		step := newStatementsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

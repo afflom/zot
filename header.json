@@ -1,0 +1,48 @@
+{
+    "statementrecord":{
+      "statement":{
+        "schemaVersion": 99,
+        "mediaType": "application/vnd.uor.statement.v1+json",
+        "subject":{
+            "resourceType": "localhost/testsubject/type:v1",
+            "locatorType": "localhost/oci/type:v1",
+            "location":{
+                "namespace": "hello/test3"
+            },
+            "resource":{
+
+            }
+        },
+        "predicate":{
+            "locatorType": "oci",
+            "resourceType": "oci",
+            "location":{
+                "namespace": "hello/test2"
+            },
+            "resource":{
+            }
+        },
+        "object":{
+            "locatorType": "oci",
+            "resourceType": "oci",
+            "location":{
+                "namespace": "hello/test1"
+            },
+            "resource":{
+            }
+        }
+      },
+      "download":{
+        "locationType": "oci",
+        "resourceType": "oci",
+        "location":{
+            "namespace": "hello/test1"
+        },
+        "resource":{
+          "mediaType": "application/vnd.oci.image.manifest.v1+json",
+          "digest": "sha256:5b0bcabd1ed22e9fb1310cf6c2dec7cdef19f0ad69efa1f392e94a4333501270",
+          "size": 7682
+        }
+      }
+    }
+}

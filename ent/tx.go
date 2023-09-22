@@ -14,14 +14,12 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
-	// Object is the client for interacting with the Object builders.
-	Object *ObjectClient
-	// Spredicate is the client for interacting with the Spredicate builders.
-	Spredicate *SpredicateClient
+	// Element is the client for interacting with the Element builders.
+	Element *ElementClient
+	// Resource is the client for interacting with the Resource builders.
+	Resource *ResourceClient
 	// Statement is the client for interacting with the Statement builders.
 	Statement *StatementClient
-	// Subject is the client for interacting with the Subject builders.
-	Subject *SubjectClient
 
 	// lazily loaded.
 	client     *Client
@@ -153,10 +151,9 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
-	tx.Object = NewObjectClient(tx.config)
-	tx.Spredicate = NewSpredicateClient(tx.config)
+	tx.Element = NewElementClient(tx.config)
+	tx.Resource = NewResourceClient(tx.config)
 	tx.Statement = NewStatementClient(tx.config)
-	tx.Subject = NewSubjectClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.
@@ -166,7 +163,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: Object.QueryXXX(), the query will be executed
+// applies a query, for example: Element.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

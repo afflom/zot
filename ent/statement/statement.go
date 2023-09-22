@@ -12,58 +12,69 @@ const (
 	Label = "statement"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// FieldNamespace holds the string denoting the namespace field in the database.
-	FieldNamespace = "namespace"
-	// FieldStatement holds the string denoting the statement field in the database.
-	FieldStatement = "statement"
+	// FieldMediaType holds the string denoting the mediatype field in the database.
+	FieldMediaType = "media_type"
 	// EdgeObjects holds the string denoting the objects edge name in mutations.
 	EdgeObjects = "objects"
 	// EdgePredicates holds the string denoting the predicates edge name in mutations.
 	EdgePredicates = "predicates"
 	// EdgeSubjects holds the string denoting the subjects edge name in mutations.
 	EdgeSubjects = "subjects"
+	// EdgeStatements holds the string denoting the statements edge name in mutations.
+	EdgeStatements = "statements"
 	// Table holds the table name of the statement in the database.
 	Table = "statements"
-	// ObjectsTable is the table that holds the objects relation/edge. The primary key declared below.
-	ObjectsTable = "statement_objects"
-	// ObjectsInverseTable is the table name for the Object entity.
-	// It exists in this package in order to avoid circular dependency with the "object" package.
-	ObjectsInverseTable = "objects"
-	// PredicatesTable is the table that holds the predicates relation/edge. The primary key declared below.
-	PredicatesTable = "statement_predicates"
-	// PredicatesInverseTable is the table name for the Spredicate entity.
-	// It exists in this package in order to avoid circular dependency with the "spredicate" package.
-	PredicatesInverseTable = "spredicates"
-	// SubjectsTable is the table that holds the subjects relation/edge. The primary key declared below.
-	SubjectsTable = "statement_subjects"
-	// SubjectsInverseTable is the table name for the Subject entity.
-	// It exists in this package in order to avoid circular dependency with the "subject" package.
-	SubjectsInverseTable = "subjects"
+	// ObjectsTable is the table that holds the objects relation/edge.
+	ObjectsTable = "elements"
+	// ObjectsInverseTable is the table name for the Element entity.
+	// It exists in this package in order to avoid circular dependency with the "element" package.
+	ObjectsInverseTable = "elements"
+	// ObjectsColumn is the table column denoting the objects relation/edge.
+	ObjectsColumn = "statement_objects"
+	// PredicatesTable is the table that holds the predicates relation/edge.
+	PredicatesTable = "elements"
+	// PredicatesInverseTable is the table name for the Element entity.
+	// It exists in this package in order to avoid circular dependency with the "element" package.
+	PredicatesInverseTable = "elements"
+	// PredicatesColumn is the table column denoting the predicates relation/edge.
+	PredicatesColumn = "statement_predicates"
+	// SubjectsTable is the table that holds the subjects relation/edge.
+	SubjectsTable = "elements"
+	// SubjectsInverseTable is the table name for the Element entity.
+	// It exists in this package in order to avoid circular dependency with the "element" package.
+	SubjectsInverseTable = "elements"
+	// SubjectsColumn is the table column denoting the subjects relation/edge.
+	SubjectsColumn = "statement_subjects"
+	// StatementsTable is the table that holds the statements relation/edge.
+	StatementsTable = "elements"
+	// StatementsInverseTable is the table name for the Element entity.
+	// It exists in this package in order to avoid circular dependency with the "element" package.
+	StatementsInverseTable = "elements"
+	// StatementsColumn is the table column denoting the statements relation/edge.
+	StatementsColumn = "statement_statements"
 )
 
 // Columns holds all SQL columns for statement fields.
 var Columns = []string{
 	FieldID,
-	FieldNamespace,
-	FieldStatement,
+	FieldMediaType,
 }
 
-var (
-	// ObjectsPrimaryKey and ObjectsColumn2 are the table columns denoting the
-	// primary key for the objects relation (M2M).
-	ObjectsPrimaryKey = []string{"statement_id", "object_id"}
-	// PredicatesPrimaryKey and PredicatesColumn2 are the table columns denoting the
-	// primary key for the predicates relation (M2M).
-	PredicatesPrimaryKey = []string{"statement_id", "spredicate_id"}
-	// SubjectsPrimaryKey and SubjectsColumn2 are the table columns denoting the
-	// primary key for the subjects relation (M2M).
-	SubjectsPrimaryKey = []string{"statement_id", "subject_id"}
-)
+// ForeignKeys holds the SQL foreign-keys that are owned by the "statements"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"element_statements",
+}
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -78,9 +89,9 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
-// ByNamespace orders the results by the namespace field.
-func ByNamespace(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldNamespace, opts...).ToFunc()
+// ByMediaType orders the results by the mediaType field.
+func ByMediaType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMediaType, opts...).ToFunc()
 }
 
 // ByObjectsCount orders the results by objects count.
@@ -124,24 +135,45 @@ func BySubjects(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newSubjectsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByStatementsCount orders the results by statements count.
+func ByStatementsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newStatementsStep(), opts...)
+	}
+}
+
+// ByStatements orders the results by statements terms.
+func ByStatements(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newStatementsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newObjectsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ObjectsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2M, false, ObjectsTable, ObjectsPrimaryKey...),
+		sqlgraph.Edge(sqlgraph.O2M, false, ObjectsTable, ObjectsColumn),
 	)
 }
 func newPredicatesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(PredicatesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2M, false, PredicatesTable, PredicatesPrimaryKey...),
+		sqlgraph.Edge(sqlgraph.O2M, false, PredicatesTable, PredicatesColumn),
 	)
 }
 func newSubjectsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubjectsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2M, false, SubjectsTable, SubjectsPrimaryKey...),
+		sqlgraph.Edge(sqlgraph.O2M, false, SubjectsTable, SubjectsColumn),
+	)
+}
+func newStatementsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(StatementsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, StatementsTable, StatementsColumn),
 	)
 }

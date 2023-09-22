@@ -9,10 +9,8 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"zotregistry.io/zot/ent/object"
-	"zotregistry.io/zot/ent/spredicate"
+	"zotregistry.io/zot/ent/element"
 	"zotregistry.io/zot/ent/statement"
-	"zotregistry.io/zot/ent/subject"
 )
 
 // StatementCreate is the builder for creating a Statement entity.
@@ -22,61 +20,70 @@ type StatementCreate struct {
 	hooks    []Hook
 }
 
-// SetNamespace sets the "namespace" field.
-func (sc *StatementCreate) SetNamespace(s string) *StatementCreate {
-	sc.mutation.SetNamespace(s)
+// SetMediaType sets the "mediaType" field.
+func (sc *StatementCreate) SetMediaType(s string) *StatementCreate {
+	sc.mutation.SetMediaType(s)
 	return sc
 }
 
-// SetStatement sets the "statement" field.
-func (sc *StatementCreate) SetStatement(m map[string]interface{}) *StatementCreate {
-	sc.mutation.SetStatement(m)
-	return sc
-}
-
-// AddObjectIDs adds the "objects" edge to the Object entity by IDs.
+// AddObjectIDs adds the "objects" edge to the Element entity by IDs.
 func (sc *StatementCreate) AddObjectIDs(ids ...int) *StatementCreate {
 	sc.mutation.AddObjectIDs(ids...)
 	return sc
 }
 
-// AddObjects adds the "objects" edges to the Object entity.
-func (sc *StatementCreate) AddObjects(o ...*Object) *StatementCreate {
-	ids := make([]int, len(o))
-	for i := range o {
-		ids[i] = o[i].ID
+// AddObjects adds the "objects" edges to the Element entity.
+func (sc *StatementCreate) AddObjects(e ...*Element) *StatementCreate {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
 	}
 	return sc.AddObjectIDs(ids...)
 }
 
-// AddPredicateIDs adds the "predicates" edge to the Spredicate entity by IDs.
+// AddPredicateIDs adds the "predicates" edge to the Element entity by IDs.
 func (sc *StatementCreate) AddPredicateIDs(ids ...int) *StatementCreate {
 	sc.mutation.AddPredicateIDs(ids...)
 	return sc
 }
 
-// AddPredicates adds the "predicates" edges to the Spredicate entity.
-func (sc *StatementCreate) AddPredicates(s ...*Spredicate) *StatementCreate {
-	ids := make([]int, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+// AddPredicates adds the "predicates" edges to the Element entity.
+func (sc *StatementCreate) AddPredicates(e ...*Element) *StatementCreate {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
 	}
 	return sc.AddPredicateIDs(ids...)
 }
 
-// AddSubjectIDs adds the "subjects" edge to the Subject entity by IDs.
+// AddSubjectIDs adds the "subjects" edge to the Element entity by IDs.
 func (sc *StatementCreate) AddSubjectIDs(ids ...int) *StatementCreate {
 	sc.mutation.AddSubjectIDs(ids...)
 	return sc
 }
 
-// AddSubjects adds the "subjects" edges to the Subject entity.
-func (sc *StatementCreate) AddSubjects(s ...*Subject) *StatementCreate {
-	ids := make([]int, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+// AddSubjects adds the "subjects" edges to the Element entity.
+func (sc *StatementCreate) AddSubjects(e ...*Element) *StatementCreate {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
 	}
 	return sc.AddSubjectIDs(ids...)
+}
+
+// AddStatementIDs adds the "statements" edge to the Element entity by IDs.
+func (sc *StatementCreate) AddStatementIDs(ids ...int) *StatementCreate {
+	sc.mutation.AddStatementIDs(ids...)
+	return sc
+}
+
+// AddStatements adds the "statements" edges to the Element entity.
+func (sc *StatementCreate) AddStatements(e ...*Element) *StatementCreate {
+	ids := make([]int, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return sc.AddStatementIDs(ids...)
 }
 
 // Mutation returns the StatementMutation object of the builder.
@@ -113,11 +120,8 @@ func (sc *StatementCreate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (sc *StatementCreate) check() error {
-	if _, ok := sc.mutation.Namespace(); !ok {
-		return &ValidationError{Name: "namespace", err: errors.New(`ent: missing required field "Statement.namespace"`)}
-	}
-	if _, ok := sc.mutation.Statement(); !ok {
-		return &ValidationError{Name: "statement", err: errors.New(`ent: missing required field "Statement.statement"`)}
+	if _, ok := sc.mutation.MediaType(); !ok {
+		return &ValidationError{Name: "mediaType", err: errors.New(`ent: missing required field "Statement.mediaType"`)}
 	}
 	return nil
 }
@@ -145,23 +149,19 @@ func (sc *StatementCreate) createSpec() (*Statement, *sqlgraph.CreateSpec) {
 		_node = &Statement{config: sc.config}
 		_spec = sqlgraph.NewCreateSpec(statement.Table, sqlgraph.NewFieldSpec(statement.FieldID, field.TypeInt))
 	)
-	if value, ok := sc.mutation.Namespace(); ok {
-		_spec.SetField(statement.FieldNamespace, field.TypeString, value)
-		_node.Namespace = value
-	}
-	if value, ok := sc.mutation.Statement(); ok {
-		_spec.SetField(statement.FieldStatement, field.TypeJSON, value)
-		_node.Statement = value
+	if value, ok := sc.mutation.MediaType(); ok {
+		_spec.SetField(statement.FieldMediaType, field.TypeString, value)
+		_node.MediaType = value
 	}
 	if nodes := sc.mutation.ObjectsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.ObjectsTable,
-			Columns: statement.ObjectsPrimaryKey,
+			Columns: []string{statement.ObjectsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(object.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -171,13 +171,13 @@ func (sc *StatementCreate) createSpec() (*Statement, *sqlgraph.CreateSpec) {
 	}
 	if nodes := sc.mutation.PredicatesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.PredicatesTable,
-			Columns: statement.PredicatesPrimaryKey,
+			Columns: []string{statement.PredicatesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(spredicate.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -187,13 +187,29 @@ func (sc *StatementCreate) createSpec() (*Statement, *sqlgraph.CreateSpec) {
 	}
 	if nodes := sc.mutation.SubjectsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.SubjectsTable,
-			Columns: statement.SubjectsPrimaryKey,
+			Columns: []string{statement.SubjectsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subject.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := sc.mutation.StatementsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   statement.StatementsTable,
+			Columns: []string{statement.StatementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(element.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

@@ -8,31 +8,55 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 )
 
-func (o *Object) Statement(ctx context.Context) (result []*Statement, err error) {
+func (e *Element) Statements(ctx context.Context) (result []*Statement, err error) {
 	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
-		result, err = o.NamedStatement(graphql.GetFieldContext(ctx).Field.Alias)
+		result, err = e.NamedStatements(graphql.GetFieldContext(ctx).Field.Alias)
 	} else {
-		result, err = o.Edges.StatementOrErr()
+		result, err = e.Edges.StatementsOrErr()
 	}
 	if IsNotLoaded(err) {
-		result, err = o.QueryStatement().All(ctx)
+		result, err = e.QueryStatements().All(ctx)
 	}
 	return result, err
 }
 
-func (s *Spredicate) Statement(ctx context.Context) (result []*Statement, err error) {
+func (e *Element) Resources(ctx context.Context) (result []*Resource, err error) {
 	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
-		result, err = s.NamedStatement(graphql.GetFieldContext(ctx).Field.Alias)
+		result, err = e.NamedResources(graphql.GetFieldContext(ctx).Field.Alias)
 	} else {
-		result, err = s.Edges.StatementOrErr()
+		result, err = e.Edges.ResourcesOrErr()
 	}
 	if IsNotLoaded(err) {
-		result, err = s.QueryStatement().All(ctx)
+		result, err = e.QueryResources().All(ctx)
 	}
 	return result, err
 }
 
-func (s *Statement) Objects(ctx context.Context) (result []*Object, err error) {
+func (e *Element) Locations(ctx context.Context) (result []*Resource, err error) {
+	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
+		result, err = e.NamedLocations(graphql.GetFieldContext(ctx).Field.Alias)
+	} else {
+		result, err = e.Edges.LocationsOrErr()
+	}
+	if IsNotLoaded(err) {
+		result, err = e.QueryLocations().All(ctx)
+	}
+	return result, err
+}
+
+func (r *Resource) Elements(ctx context.Context) (result []*Element, err error) {
+	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
+		result, err = r.NamedElements(graphql.GetFieldContext(ctx).Field.Alias)
+	} else {
+		result, err = r.Edges.ElementsOrErr()
+	}
+	if IsNotLoaded(err) {
+		result, err = r.QueryElements().All(ctx)
+	}
+	return result, err
+}
+
+func (s *Statement) Objects(ctx context.Context) (result []*Element, err error) {
 	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
 		result, err = s.NamedObjects(graphql.GetFieldContext(ctx).Field.Alias)
 	} else {
@@ -44,7 +68,7 @@ func (s *Statement) Objects(ctx context.Context) (result []*Object, err error) {
 	return result, err
 }
 
-func (s *Statement) Predicates(ctx context.Context) (result []*Spredicate, err error) {
+func (s *Statement) Predicates(ctx context.Context) (result []*Element, err error) {
 	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
 		result, err = s.NamedPredicates(graphql.GetFieldContext(ctx).Field.Alias)
 	} else {
@@ -56,7 +80,7 @@ func (s *Statement) Predicates(ctx context.Context) (result []*Spredicate, err e
 	return result, err
 }
 
-func (s *Statement) Subjects(ctx context.Context) (result []*Subject, err error) {
+func (s *Statement) Subjects(ctx context.Context) (result []*Element, err error) {
 	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
 		result, err = s.NamedSubjects(graphql.GetFieldContext(ctx).Field.Alias)
 	} else {
@@ -68,14 +92,14 @@ func (s *Statement) Subjects(ctx context.Context) (result []*Subject, err error)
 	return result, err
 }
 
-func (s *Subject) Statement(ctx context.Context) (result []*Statement, err error) {
+func (s *Statement) Statements(ctx context.Context) (result []*Element, err error) {
 	if fc := graphql.GetFieldContext(ctx); fc != nil && fc.Field.Alias != "" {
-		result, err = s.NamedStatement(graphql.GetFieldContext(ctx).Field.Alias)
+		result, err = s.NamedStatements(graphql.GetFieldContext(ctx).Field.Alias)
 	} else {
-		result, err = s.Edges.StatementOrErr()
+		result, err = s.Edges.StatementsOrErr()
 	}
 	if IsNotLoaded(err) {
-		result, err = s.QueryStatement().All(ctx)
+		result, err = s.QueryStatements().All(ctx)
 	}
 	return result, err
 }

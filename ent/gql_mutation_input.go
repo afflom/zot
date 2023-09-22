@@ -2,69 +2,70 @@
 
 package ent
 
-// CreateObjectInput represents a mutation input for creating objects.
-type CreateObjectInput struct {
-	ObjectType   string
-	Object       map[string]interface{}
+// CreateElementInput represents a mutation input for creating elements.
+type CreateElementInput struct {
+	ResourceType string
+	LocatorType  string
 	StatementIDs []int
+	ResourceIDs  []int
+	LocationIDs  []int
 }
 
-// Mutate applies the CreateObjectInput on the ObjectMutation builder.
-func (i *CreateObjectInput) Mutate(m *ObjectMutation) {
-	m.SetObjectType(i.ObjectType)
-	if v := i.Object; v != nil {
-		m.SetObject(v)
-	}
+// Mutate applies the CreateElementInput on the ElementMutation builder.
+func (i *CreateElementInput) Mutate(m *ElementMutation) {
+	m.SetResourceType(i.ResourceType)
+	m.SetLocatorType(i.LocatorType)
 	if v := i.StatementIDs; len(v) > 0 {
 		m.AddStatementIDs(v...)
 	}
+	if v := i.ResourceIDs; len(v) > 0 {
+		m.AddResourceIDs(v...)
+	}
+	if v := i.LocationIDs; len(v) > 0 {
+		m.AddLocationIDs(v...)
+	}
 }
 
-// SetInput applies the change-set in the CreateObjectInput on the ObjectCreate builder.
-func (c *ObjectCreate) SetInput(i CreateObjectInput) *ObjectCreate {
+// SetInput applies the change-set in the CreateElementInput on the ElementCreate builder.
+func (c *ElementCreate) SetInput(i CreateElementInput) *ElementCreate {
 	i.Mutate(c.Mutation())
 	return c
 }
 
-// CreateSpredicateInput represents a mutation input for creating spredicates.
-type CreateSpredicateInput struct {
-	PredicateType string
-	Predicate     map[string]interface{}
-	StatementIDs  []int
+// CreateResourceInput represents a mutation input for creating resources.
+type CreateResourceInput struct {
+	Message    *map[string]interface{}
+	ElementIDs []int
 }
 
-// Mutate applies the CreateSpredicateInput on the SpredicateMutation builder.
-func (i *CreateSpredicateInput) Mutate(m *SpredicateMutation) {
-	m.SetPredicateType(i.PredicateType)
-	if v := i.Predicate; v != nil {
-		m.SetPredicate(v)
+// Mutate applies the CreateResourceInput on the ResourceMutation builder.
+func (i *CreateResourceInput) Mutate(m *ResourceMutation) {
+	if v := i.Message; v != nil {
+		m.SetMessage(v)
 	}
-	if v := i.StatementIDs; len(v) > 0 {
-		m.AddStatementIDs(v...)
+	if v := i.ElementIDs; len(v) > 0 {
+		m.AddElementIDs(v...)
 	}
 }
 
-// SetInput applies the change-set in the CreateSpredicateInput on the SpredicateCreate builder.
-func (c *SpredicateCreate) SetInput(i CreateSpredicateInput) *SpredicateCreate {
+// SetInput applies the change-set in the CreateResourceInput on the ResourceCreate builder.
+func (c *ResourceCreate) SetInput(i CreateResourceInput) *ResourceCreate {
 	i.Mutate(c.Mutation())
 	return c
 }
 
 // CreateStatementInput represents a mutation input for creating statements.
 type CreateStatementInput struct {
-	Namespace    string
-	Statement    map[string]interface{}
+	MediaType    string
 	ObjectIDs    []int
 	PredicateIDs []int
 	SubjectIDs   []int
+	StatementIDs []int
 }
 
 // Mutate applies the CreateStatementInput on the StatementMutation builder.
 func (i *CreateStatementInput) Mutate(m *StatementMutation) {
-	m.SetNamespace(i.Namespace)
-	if v := i.Statement; v != nil {
-		m.SetStatement(v)
-	}
+	m.SetMediaType(i.MediaType)
 	if v := i.ObjectIDs; len(v) > 0 {
 		m.AddObjectIDs(v...)
 	}
@@ -74,34 +75,13 @@ func (i *CreateStatementInput) Mutate(m *StatementMutation) {
 	if v := i.SubjectIDs; len(v) > 0 {
 		m.AddSubjectIDs(v...)
 	}
-}
-
-// SetInput applies the change-set in the CreateStatementInput on the StatementCreate builder.
-func (c *StatementCreate) SetInput(i CreateStatementInput) *StatementCreate {
-	i.Mutate(c.Mutation())
-	return c
-}
-
-// CreateSubjectInput represents a mutation input for creating subjects.
-type CreateSubjectInput struct {
-	SubjectType  string
-	Subject      map[string]interface{}
-	StatementIDs []int
-}
-
-// Mutate applies the CreateSubjectInput on the SubjectMutation builder.
-func (i *CreateSubjectInput) Mutate(m *SubjectMutation) {
-	m.SetSubjectType(i.SubjectType)
-	if v := i.Subject; v != nil {
-		m.SetSubject(v)
-	}
 	if v := i.StatementIDs; len(v) > 0 {
 		m.AddStatementIDs(v...)
 	}
 }
 
-// SetInput applies the change-set in the CreateSubjectInput on the SubjectCreate builder.
-func (c *SubjectCreate) SetInput(i CreateSubjectInput) *SubjectCreate {
+// SetInput applies the change-set in the CreateStatementInput on the StatementCreate builder.
+func (c *StatementCreate) SetInput(i CreateStatementInput) *StatementCreate {
 	i.Mutate(c.Mutation())
 	return c
 }

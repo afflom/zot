@@ -2,6 +2,7 @@ package local
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,7 +30,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/sigstore/cosign/v2/pkg/oci/remote"
 
-	"zotregistry.io/zot/ent"
 	zerr "zotregistry.io/zot/errors"
 	zcommon "zotregistry.io/zot/pkg/common"
 	"zotregistry.io/zot/pkg/extensions/monitoring"
@@ -2031,12 +2031,14 @@ func (is *ImageStoreLocal) RunDedupeBlobs(interval time.Duration, sch *scheduler
 	}
 }
 
-// AddToIndex creates a file in the blobs directory that indicates a statement.
-func (is *ImageStoreLocal) AddToIndex(repo string, mdescriptor ispec.Descriptor, manifest ispec.Manifest, eclient *ent.Client) error {
+// AddToIndex searches for Statements and Resource type definitions in an
+// OCI manifest. When found, the UOR database is extended and updated with
+// the discovered information.
+func (is *ImageStoreLocal) AddToIndex(repo string, mdescriptor ispec.Descriptor, manifest ispec.Manifest, eclient *sql.DB) error {
 
-	targetMediaType := "application/vnd.uor.statement.v1+json"
 	for _, layer := range manifest.Layers {
-		if layer.MediaType == targetMediaType {
+		switch {
+		case layer.MediaType == "application/vnd.uor.statement.v1+json":
 			statement, err := is.GetBlobContent(repo, layer.Digest)
 			if err != nil {
 				fmt.Println("error getting blob content")
@@ -2054,16 +2056,47 @@ func (is *ImageStoreLocal) AddToIndex(repo string, mdescriptor ispec.Descriptor,
 				fmt.Printf("add statment err: %s", err)
 
 			}
+		case layer.MediaType == "application/schema+json":
+			schema, err := is.GetBlobContent(repo, layer.Digest)
+			if err != nil {
+				fmt.Println("error getting blob content")
+				return err
+			}
+
+			schemaMap := make(map[string]interface{})
+			if err := json.Unmarshal(schema, &schemaMap); err != nil {
+				fmt.Println("error unmarshalling schema")
+				return err
+			}
+
+			search.JSONSchemaToSQLiteSchema(schemaMap, &search.Table{}, eclient, "")
+
+		case layer.MediaType == "application/ld+json":
+			ld, err := is.GetBlobContent(repo, layer.Digest)
+			if err != nil {
+				fmt.Println("error getting blob content")
+				return err
+			}
+
+			ldMap := make(map[string]interface{})
+			if err := json.Unmarshal(ld, &ldMap); err != nil {
+				fmt.Println("error unmarshalling schema")
+				return err
+			}
+			JSONSchema := search.JSONLDToJSONSchema(ldMap)
+
+			search.JSONSchemaToSQLiteSchema(JSONSchema, &search.Table{}, eclient, "")
+
 		}
 	}
-	fmt.Printf("preparing to write manifest: %v\n", manifest)
+	/*fmt.Printf("preparing to write manifest: %v\n", manifest)
 	mStatement, err := search.Manifest2Statement(manifest)
 	if err != nil {
 		fmt.Printf("error converting manifest to statement: %s", err)
 	}
 	if err := search.AddStatement(mStatement, repo, mdescriptor, eclient); err != nil {
 		fmt.Printf("manifest indexing err: %s", err)
-	}
+	}*/
 	return nil
 }
 
@@ -2088,17 +2121,21 @@ func (is *ImageStoreLocal) GetStatementDescriptor(repo string, digest godigest.D
 	return file, nil
 }
 
-func (is ImageStoreLocal) InitDatabase() (*ent.Client, error) {
-	dbPath := fmt.Sprintf("file:%s/artifact-index.sqlite?_fk=1", is.rootDir)
-	client, err := ent.Open("sqlite3", dbPath)
+func (is ImageStoreLocal) InitDatabase() (*sql.DB, error) {
+
+	// Create the UOR database
+	dbPath := fmt.Sprintf("file:%s/artifact-index.sqlite", is.rootDir)
+	client, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		log.Fatalf("failed opening connection to sqlite: %v", err)
 	}
-	// Run the auto migration tool.
-	if err := client.Schema.Create(context.Background()); err != nil {
-		log.Fatalf("failed creating schema resources: %v", err)
-		return nil, err
-	}
+
+	// Initialize the UOR database with the StatementRecord struct
+	search.CreateStatementRecordTables(client)
+
+	search.DumpSchema(client)
+
 	fmt.Println("sqlite database initialized")
 	return client, nil
+
 }

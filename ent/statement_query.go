@@ -11,11 +11,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"zotregistry.io/zot/ent/object"
+	"zotregistry.io/zot/ent/element"
 	"zotregistry.io/zot/ent/predicate"
-	"zotregistry.io/zot/ent/spredicate"
 	"zotregistry.io/zot/ent/statement"
-	"zotregistry.io/zot/ent/subject"
 )
 
 // StatementQuery is the builder for querying Statement entities.
@@ -25,14 +23,17 @@ type StatementQuery struct {
 	order               []statement.OrderOption
 	inters              []Interceptor
 	predicates          []predicate.Statement
-	withObjects         *ObjectQuery
-	withPredicates      *SpredicateQuery
-	withSubjects        *SubjectQuery
+	withObjects         *ElementQuery
+	withPredicates      *ElementQuery
+	withSubjects        *ElementQuery
+	withStatements      *ElementQuery
+	withFKs             bool
 	modifiers           []func(*sql.Selector)
 	loadTotal           []func(context.Context, []*Statement) error
-	withNamedObjects    map[string]*ObjectQuery
-	withNamedPredicates map[string]*SpredicateQuery
-	withNamedSubjects   map[string]*SubjectQuery
+	withNamedObjects    map[string]*ElementQuery
+	withNamedPredicates map[string]*ElementQuery
+	withNamedSubjects   map[string]*ElementQuery
+	withNamedStatements map[string]*ElementQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -70,8 +71,8 @@ func (sq *StatementQuery) Order(o ...statement.OrderOption) *StatementQuery {
 }
 
 // QueryObjects chains the current query on the "objects" edge.
-func (sq *StatementQuery) QueryObjects() *ObjectQuery {
-	query := (&ObjectClient{config: sq.config}).Query()
+func (sq *StatementQuery) QueryObjects() *ElementQuery {
+	query := (&ElementClient{config: sq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := sq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -82,8 +83,8 @@ func (sq *StatementQuery) QueryObjects() *ObjectQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(statement.Table, statement.FieldID, selector),
-			sqlgraph.To(object.Table, object.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, statement.ObjectsTable, statement.ObjectsPrimaryKey...),
+			sqlgraph.To(element.Table, element.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, statement.ObjectsTable, statement.ObjectsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
 		return fromU, nil
@@ -92,8 +93,8 @@ func (sq *StatementQuery) QueryObjects() *ObjectQuery {
 }
 
 // QueryPredicates chains the current query on the "predicates" edge.
-func (sq *StatementQuery) QueryPredicates() *SpredicateQuery {
-	query := (&SpredicateClient{config: sq.config}).Query()
+func (sq *StatementQuery) QueryPredicates() *ElementQuery {
+	query := (&ElementClient{config: sq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := sq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -104,8 +105,8 @@ func (sq *StatementQuery) QueryPredicates() *SpredicateQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(statement.Table, statement.FieldID, selector),
-			sqlgraph.To(spredicate.Table, spredicate.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, statement.PredicatesTable, statement.PredicatesPrimaryKey...),
+			sqlgraph.To(element.Table, element.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, statement.PredicatesTable, statement.PredicatesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
 		return fromU, nil
@@ -114,8 +115,8 @@ func (sq *StatementQuery) QueryPredicates() *SpredicateQuery {
 }
 
 // QuerySubjects chains the current query on the "subjects" edge.
-func (sq *StatementQuery) QuerySubjects() *SubjectQuery {
-	query := (&SubjectClient{config: sq.config}).Query()
+func (sq *StatementQuery) QuerySubjects() *ElementQuery {
+	query := (&ElementClient{config: sq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := sq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -126,8 +127,30 @@ func (sq *StatementQuery) QuerySubjects() *SubjectQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(statement.Table, statement.FieldID, selector),
-			sqlgraph.To(subject.Table, subject.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, statement.SubjectsTable, statement.SubjectsPrimaryKey...),
+			sqlgraph.To(element.Table, element.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, statement.SubjectsTable, statement.SubjectsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryStatements chains the current query on the "statements" edge.
+func (sq *StatementQuery) QueryStatements() *ElementQuery {
+	query := (&ElementClient{config: sq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := sq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := sq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(statement.Table, statement.FieldID, selector),
+			sqlgraph.To(element.Table, element.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, statement.StatementsTable, statement.StatementsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
 		return fromU, nil
@@ -330,6 +353,7 @@ func (sq *StatementQuery) Clone() *StatementQuery {
 		withObjects:    sq.withObjects.Clone(),
 		withPredicates: sq.withPredicates.Clone(),
 		withSubjects:   sq.withSubjects.Clone(),
+		withStatements: sq.withStatements.Clone(),
 		// clone intermediate query.
 		sql:  sq.sql.Clone(),
 		path: sq.path,
@@ -338,8 +362,8 @@ func (sq *StatementQuery) Clone() *StatementQuery {
 
 // WithObjects tells the query-builder to eager-load the nodes that are connected to
 // the "objects" edge. The optional arguments are used to configure the query builder of the edge.
-func (sq *StatementQuery) WithObjects(opts ...func(*ObjectQuery)) *StatementQuery {
-	query := (&ObjectClient{config: sq.config}).Query()
+func (sq *StatementQuery) WithObjects(opts ...func(*ElementQuery)) *StatementQuery {
+	query := (&ElementClient{config: sq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
@@ -349,8 +373,8 @@ func (sq *StatementQuery) WithObjects(opts ...func(*ObjectQuery)) *StatementQuer
 
 // WithPredicates tells the query-builder to eager-load the nodes that are connected to
 // the "predicates" edge. The optional arguments are used to configure the query builder of the edge.
-func (sq *StatementQuery) WithPredicates(opts ...func(*SpredicateQuery)) *StatementQuery {
-	query := (&SpredicateClient{config: sq.config}).Query()
+func (sq *StatementQuery) WithPredicates(opts ...func(*ElementQuery)) *StatementQuery {
+	query := (&ElementClient{config: sq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
@@ -360,12 +384,23 @@ func (sq *StatementQuery) WithPredicates(opts ...func(*SpredicateQuery)) *Statem
 
 // WithSubjects tells the query-builder to eager-load the nodes that are connected to
 // the "subjects" edge. The optional arguments are used to configure the query builder of the edge.
-func (sq *StatementQuery) WithSubjects(opts ...func(*SubjectQuery)) *StatementQuery {
-	query := (&SubjectClient{config: sq.config}).Query()
+func (sq *StatementQuery) WithSubjects(opts ...func(*ElementQuery)) *StatementQuery {
+	query := (&ElementClient{config: sq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
 	sq.withSubjects = query
+	return sq
+}
+
+// WithStatements tells the query-builder to eager-load the nodes that are connected to
+// the "statements" edge. The optional arguments are used to configure the query builder of the edge.
+func (sq *StatementQuery) WithStatements(opts ...func(*ElementQuery)) *StatementQuery {
+	query := (&ElementClient{config: sq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	sq.withStatements = query
 	return sq
 }
 
@@ -375,12 +410,12 @@ func (sq *StatementQuery) WithSubjects(opts ...func(*SubjectQuery)) *StatementQu
 // Example:
 //
 //	var v []struct {
-//		Namespace string `json:"namespace,omitempty"`
+//		MediaType string `json:"mediaType,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Statement.Query().
-//		GroupBy(statement.FieldNamespace).
+//		GroupBy(statement.FieldMediaType).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (sq *StatementQuery) GroupBy(field string, fields ...string) *StatementGroupBy {
@@ -398,11 +433,11 @@ func (sq *StatementQuery) GroupBy(field string, fields ...string) *StatementGrou
 // Example:
 //
 //	var v []struct {
-//		Namespace string `json:"namespace,omitempty"`
+//		MediaType string `json:"mediaType,omitempty"`
 //	}
 //
 //	client.Statement.Query().
-//		Select(statement.FieldNamespace).
+//		Select(statement.FieldMediaType).
 //		Scan(ctx, &v)
 func (sq *StatementQuery) Select(fields ...string) *StatementSelect {
 	sq.ctx.Fields = append(sq.ctx.Fields, fields...)
@@ -446,13 +481,18 @@ func (sq *StatementQuery) prepareQuery(ctx context.Context) error {
 func (sq *StatementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Statement, error) {
 	var (
 		nodes       = []*Statement{}
+		withFKs     = sq.withFKs
 		_spec       = sq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			sq.withObjects != nil,
 			sq.withPredicates != nil,
 			sq.withSubjects != nil,
+			sq.withStatements != nil,
 		}
 	)
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, statement.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Statement).scanValues(nil, columns)
 	}
@@ -476,43 +516,57 @@ func (sq *StatementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*St
 	}
 	if query := sq.withObjects; query != nil {
 		if err := sq.loadObjects(ctx, query, nodes,
-			func(n *Statement) { n.Edges.Objects = []*Object{} },
-			func(n *Statement, e *Object) { n.Edges.Objects = append(n.Edges.Objects, e) }); err != nil {
+			func(n *Statement) { n.Edges.Objects = []*Element{} },
+			func(n *Statement, e *Element) { n.Edges.Objects = append(n.Edges.Objects, e) }); err != nil {
 			return nil, err
 		}
 	}
 	if query := sq.withPredicates; query != nil {
 		if err := sq.loadPredicates(ctx, query, nodes,
-			func(n *Statement) { n.Edges.Predicates = []*Spredicate{} },
-			func(n *Statement, e *Spredicate) { n.Edges.Predicates = append(n.Edges.Predicates, e) }); err != nil {
+			func(n *Statement) { n.Edges.Predicates = []*Element{} },
+			func(n *Statement, e *Element) { n.Edges.Predicates = append(n.Edges.Predicates, e) }); err != nil {
 			return nil, err
 		}
 	}
 	if query := sq.withSubjects; query != nil {
 		if err := sq.loadSubjects(ctx, query, nodes,
-			func(n *Statement) { n.Edges.Subjects = []*Subject{} },
-			func(n *Statement, e *Subject) { n.Edges.Subjects = append(n.Edges.Subjects, e) }); err != nil {
+			func(n *Statement) { n.Edges.Subjects = []*Element{} },
+			func(n *Statement, e *Element) { n.Edges.Subjects = append(n.Edges.Subjects, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := sq.withStatements; query != nil {
+		if err := sq.loadStatements(ctx, query, nodes,
+			func(n *Statement) { n.Edges.Statements = []*Element{} },
+			func(n *Statement, e *Element) { n.Edges.Statements = append(n.Edges.Statements, e) }); err != nil {
 			return nil, err
 		}
 	}
 	for name, query := range sq.withNamedObjects {
 		if err := sq.loadObjects(ctx, query, nodes,
 			func(n *Statement) { n.appendNamedObjects(name) },
-			func(n *Statement, e *Object) { n.appendNamedObjects(name, e) }); err != nil {
+			func(n *Statement, e *Element) { n.appendNamedObjects(name, e) }); err != nil {
 			return nil, err
 		}
 	}
 	for name, query := range sq.withNamedPredicates {
 		if err := sq.loadPredicates(ctx, query, nodes,
 			func(n *Statement) { n.appendNamedPredicates(name) },
-			func(n *Statement, e *Spredicate) { n.appendNamedPredicates(name, e) }); err != nil {
+			func(n *Statement, e *Element) { n.appendNamedPredicates(name, e) }); err != nil {
 			return nil, err
 		}
 	}
 	for name, query := range sq.withNamedSubjects {
 		if err := sq.loadSubjects(ctx, query, nodes,
 			func(n *Statement) { n.appendNamedSubjects(name) },
-			func(n *Statement, e *Subject) { n.appendNamedSubjects(name, e) }); err != nil {
+			func(n *Statement, e *Element) { n.appendNamedSubjects(name, e) }); err != nil {
+			return nil, err
+		}
+	}
+	for name, query := range sq.withNamedStatements {
+		if err := sq.loadStatements(ctx, query, nodes,
+			func(n *Statement) { n.appendNamedStatements(name) },
+			func(n *Statement, e *Element) { n.appendNamedStatements(name, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -524,186 +578,127 @@ func (sq *StatementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*St
 	return nodes, nil
 }
 
-func (sq *StatementQuery) loadObjects(ctx context.Context, query *ObjectQuery, nodes []*Statement, init func(*Statement), assign func(*Statement, *Object)) error {
-	edgeIDs := make([]driver.Value, len(nodes))
-	byID := make(map[int]*Statement)
-	nids := make(map[int]map[*Statement]struct{})
-	for i, node := range nodes {
-		edgeIDs[i] = node.ID
-		byID[node.ID] = node
+func (sq *StatementQuery) loadObjects(ctx context.Context, query *ElementQuery, nodes []*Statement, init func(*Statement), assign func(*Statement, *Element)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Statement)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
 		if init != nil {
-			init(node)
+			init(nodes[i])
 		}
 	}
-	query.Where(func(s *sql.Selector) {
-		joinT := sql.Table(statement.ObjectsTable)
-		s.Join(joinT).On(s.C(object.FieldID), joinT.C(statement.ObjectsPrimaryKey[1]))
-		s.Where(sql.InValues(joinT.C(statement.ObjectsPrimaryKey[0]), edgeIDs...))
-		columns := s.SelectedColumns()
-		s.Select(joinT.C(statement.ObjectsPrimaryKey[0]))
-		s.AppendSelect(columns...)
-		s.SetDistinct(false)
-	})
-	if err := query.prepareQuery(ctx); err != nil {
-		return err
-	}
-	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
-		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-			assign := spec.Assign
-			values := spec.ScanValues
-			spec.ScanValues = func(columns []string) ([]any, error) {
-				values, err := values(columns[1:])
-				if err != nil {
-					return nil, err
-				}
-				return append([]any{new(sql.NullInt64)}, values...), nil
-			}
-			spec.Assign = func(columns []string, values []any) error {
-				outValue := int(values[0].(*sql.NullInt64).Int64)
-				inValue := int(values[1].(*sql.NullInt64).Int64)
-				if nids[inValue] == nil {
-					nids[inValue] = map[*Statement]struct{}{byID[outValue]: {}}
-					return assign(columns[1:], values[1:])
-				}
-				nids[inValue][byID[outValue]] = struct{}{}
-				return nil
-			}
-		})
-	})
-	neighbors, err := withInterceptors[[]*Object](ctx, query, qr, query.inters)
+	query.withFKs = true
+	query.Where(predicate.Element(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(statement.ObjectsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nids[n.ID]
+		fk := n.statement_objects
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "statement_objects" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected "objects" node returned %v`, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "statement_objects" returned %v for node %v`, *fk, n.ID)
 		}
-		for kn := range nodes {
-			assign(kn, n)
-		}
+		assign(node, n)
 	}
 	return nil
 }
-func (sq *StatementQuery) loadPredicates(ctx context.Context, query *SpredicateQuery, nodes []*Statement, init func(*Statement), assign func(*Statement, *Spredicate)) error {
-	edgeIDs := make([]driver.Value, len(nodes))
-	byID := make(map[int]*Statement)
-	nids := make(map[int]map[*Statement]struct{})
-	for i, node := range nodes {
-		edgeIDs[i] = node.ID
-		byID[node.ID] = node
+func (sq *StatementQuery) loadPredicates(ctx context.Context, query *ElementQuery, nodes []*Statement, init func(*Statement), assign func(*Statement, *Element)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Statement)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
 		if init != nil {
-			init(node)
+			init(nodes[i])
 		}
 	}
-	query.Where(func(s *sql.Selector) {
-		joinT := sql.Table(statement.PredicatesTable)
-		s.Join(joinT).On(s.C(spredicate.FieldID), joinT.C(statement.PredicatesPrimaryKey[1]))
-		s.Where(sql.InValues(joinT.C(statement.PredicatesPrimaryKey[0]), edgeIDs...))
-		columns := s.SelectedColumns()
-		s.Select(joinT.C(statement.PredicatesPrimaryKey[0]))
-		s.AppendSelect(columns...)
-		s.SetDistinct(false)
-	})
-	if err := query.prepareQuery(ctx); err != nil {
-		return err
-	}
-	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
-		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-			assign := spec.Assign
-			values := spec.ScanValues
-			spec.ScanValues = func(columns []string) ([]any, error) {
-				values, err := values(columns[1:])
-				if err != nil {
-					return nil, err
-				}
-				return append([]any{new(sql.NullInt64)}, values...), nil
-			}
-			spec.Assign = func(columns []string, values []any) error {
-				outValue := int(values[0].(*sql.NullInt64).Int64)
-				inValue := int(values[1].(*sql.NullInt64).Int64)
-				if nids[inValue] == nil {
-					nids[inValue] = map[*Statement]struct{}{byID[outValue]: {}}
-					return assign(columns[1:], values[1:])
-				}
-				nids[inValue][byID[outValue]] = struct{}{}
-				return nil
-			}
-		})
-	})
-	neighbors, err := withInterceptors[[]*Spredicate](ctx, query, qr, query.inters)
+	query.withFKs = true
+	query.Where(predicate.Element(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(statement.PredicatesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nids[n.ID]
+		fk := n.statement_predicates
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "statement_predicates" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected "predicates" node returned %v`, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "statement_predicates" returned %v for node %v`, *fk, n.ID)
 		}
-		for kn := range nodes {
-			assign(kn, n)
-		}
+		assign(node, n)
 	}
 	return nil
 }
-func (sq *StatementQuery) loadSubjects(ctx context.Context, query *SubjectQuery, nodes []*Statement, init func(*Statement), assign func(*Statement, *Subject)) error {
-	edgeIDs := make([]driver.Value, len(nodes))
-	byID := make(map[int]*Statement)
-	nids := make(map[int]map[*Statement]struct{})
-	for i, node := range nodes {
-		edgeIDs[i] = node.ID
-		byID[node.ID] = node
+func (sq *StatementQuery) loadSubjects(ctx context.Context, query *ElementQuery, nodes []*Statement, init func(*Statement), assign func(*Statement, *Element)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Statement)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
 		if init != nil {
-			init(node)
+			init(nodes[i])
 		}
 	}
-	query.Where(func(s *sql.Selector) {
-		joinT := sql.Table(statement.SubjectsTable)
-		s.Join(joinT).On(s.C(subject.FieldID), joinT.C(statement.SubjectsPrimaryKey[1]))
-		s.Where(sql.InValues(joinT.C(statement.SubjectsPrimaryKey[0]), edgeIDs...))
-		columns := s.SelectedColumns()
-		s.Select(joinT.C(statement.SubjectsPrimaryKey[0]))
-		s.AppendSelect(columns...)
-		s.SetDistinct(false)
-	})
-	if err := query.prepareQuery(ctx); err != nil {
-		return err
-	}
-	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
-		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-			assign := spec.Assign
-			values := spec.ScanValues
-			spec.ScanValues = func(columns []string) ([]any, error) {
-				values, err := values(columns[1:])
-				if err != nil {
-					return nil, err
-				}
-				return append([]any{new(sql.NullInt64)}, values...), nil
-			}
-			spec.Assign = func(columns []string, values []any) error {
-				outValue := int(values[0].(*sql.NullInt64).Int64)
-				inValue := int(values[1].(*sql.NullInt64).Int64)
-				if nids[inValue] == nil {
-					nids[inValue] = map[*Statement]struct{}{byID[outValue]: {}}
-					return assign(columns[1:], values[1:])
-				}
-				nids[inValue][byID[outValue]] = struct{}{}
-				return nil
-			}
-		})
-	})
-	neighbors, err := withInterceptors[[]*Subject](ctx, query, qr, query.inters)
+	query.withFKs = true
+	query.Where(predicate.Element(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(statement.SubjectsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nids[n.ID]
+		fk := n.statement_subjects
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "statement_subjects" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected "subjects" node returned %v`, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "statement_subjects" returned %v for node %v`, *fk, n.ID)
 		}
-		for kn := range nodes {
-			assign(kn, n)
+		assign(node, n)
+	}
+	return nil
+}
+func (sq *StatementQuery) loadStatements(ctx context.Context, query *ElementQuery, nodes []*Statement, init func(*Statement), assign func(*Statement, *Element)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Statement)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
 		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Element(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(statement.StatementsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.statement_statements
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "statement_statements" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "statement_statements" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }
@@ -794,13 +789,13 @@ func (sq *StatementQuery) sqlQuery(ctx context.Context) *sql.Selector {
 
 // WithNamedObjects tells the query-builder to eager-load the nodes that are connected to the "objects"
 // edge with the given name. The optional arguments are used to configure the query builder of the edge.
-func (sq *StatementQuery) WithNamedObjects(name string, opts ...func(*ObjectQuery)) *StatementQuery {
-	query := (&ObjectClient{config: sq.config}).Query()
+func (sq *StatementQuery) WithNamedObjects(name string, opts ...func(*ElementQuery)) *StatementQuery {
+	query := (&ElementClient{config: sq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
 	if sq.withNamedObjects == nil {
-		sq.withNamedObjects = make(map[string]*ObjectQuery)
+		sq.withNamedObjects = make(map[string]*ElementQuery)
 	}
 	sq.withNamedObjects[name] = query
 	return sq
@@ -808,13 +803,13 @@ func (sq *StatementQuery) WithNamedObjects(name string, opts ...func(*ObjectQuer
 
 // WithNamedPredicates tells the query-builder to eager-load the nodes that are connected to the "predicates"
 // edge with the given name. The optional arguments are used to configure the query builder of the edge.
-func (sq *StatementQuery) WithNamedPredicates(name string, opts ...func(*SpredicateQuery)) *StatementQuery {
-	query := (&SpredicateClient{config: sq.config}).Query()
+func (sq *StatementQuery) WithNamedPredicates(name string, opts ...func(*ElementQuery)) *StatementQuery {
+	query := (&ElementClient{config: sq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
 	if sq.withNamedPredicates == nil {
-		sq.withNamedPredicates = make(map[string]*SpredicateQuery)
+		sq.withNamedPredicates = make(map[string]*ElementQuery)
 	}
 	sq.withNamedPredicates[name] = query
 	return sq
@@ -822,15 +817,29 @@ func (sq *StatementQuery) WithNamedPredicates(name string, opts ...func(*Spredic
 
 // WithNamedSubjects tells the query-builder to eager-load the nodes that are connected to the "subjects"
 // edge with the given name. The optional arguments are used to configure the query builder of the edge.
-func (sq *StatementQuery) WithNamedSubjects(name string, opts ...func(*SubjectQuery)) *StatementQuery {
-	query := (&SubjectClient{config: sq.config}).Query()
+func (sq *StatementQuery) WithNamedSubjects(name string, opts ...func(*ElementQuery)) *StatementQuery {
+	query := (&ElementClient{config: sq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
 	if sq.withNamedSubjects == nil {
-		sq.withNamedSubjects = make(map[string]*SubjectQuery)
+		sq.withNamedSubjects = make(map[string]*ElementQuery)
 	}
 	sq.withNamedSubjects[name] = query
+	return sq
+}
+
+// WithNamedStatements tells the query-builder to eager-load the nodes that are connected to the "statements"
+// edge with the given name. The optional arguments are used to configure the query builder of the edge.
+func (sq *StatementQuery) WithNamedStatements(name string, opts ...func(*ElementQuery)) *StatementQuery {
+	query := (&ElementClient{config: sq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	if sq.withNamedStatements == nil {
+		sq.withNamedStatements = make(map[string]*ElementQuery)
+	}
+	sq.withNamedStatements[name] = query
 	return sq
 }
 

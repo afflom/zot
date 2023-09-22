@@ -3,11 +3,10 @@
 package ent
 
 import (
-	"zotregistry.io/zot/ent/object"
+	"zotregistry.io/zot/ent/element"
 	"zotregistry.io/zot/ent/predicate"
-	"zotregistry.io/zot/ent/spredicate"
+	"zotregistry.io/zot/ent/resource"
 	"zotregistry.io/zot/ent/statement"
-	"zotregistry.io/zot/ent/subject"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -17,35 +16,34 @@ import (
 
 // schemaGraph holds a representation of ent/schema at runtime.
 var schemaGraph = func() *sqlgraph.Schema {
-	graph := &sqlgraph.Schema{Nodes: make([]*sqlgraph.Node, 4)}
+	graph := &sqlgraph.Schema{Nodes: make([]*sqlgraph.Node, 3)}
 	graph.Nodes[0] = &sqlgraph.Node{
 		NodeSpec: sqlgraph.NodeSpec{
-			Table:   object.Table,
-			Columns: object.Columns,
+			Table:   element.Table,
+			Columns: element.Columns,
 			ID: &sqlgraph.FieldSpec{
 				Type:   field.TypeInt,
-				Column: object.FieldID,
+				Column: element.FieldID,
 			},
 		},
-		Type: "Object",
+		Type: "Element",
 		Fields: map[string]*sqlgraph.FieldSpec{
-			object.FieldObjectType: {Type: field.TypeString, Column: object.FieldObjectType},
-			object.FieldObject:     {Type: field.TypeJSON, Column: object.FieldObject},
+			element.FieldResourceType: {Type: field.TypeString, Column: element.FieldResourceType},
+			element.FieldLocatorType:  {Type: field.TypeString, Column: element.FieldLocatorType},
 		},
 	}
 	graph.Nodes[1] = &sqlgraph.Node{
 		NodeSpec: sqlgraph.NodeSpec{
-			Table:   spredicate.Table,
-			Columns: spredicate.Columns,
+			Table:   resource.Table,
+			Columns: resource.Columns,
 			ID: &sqlgraph.FieldSpec{
 				Type:   field.TypeInt,
-				Column: spredicate.FieldID,
+				Column: resource.FieldID,
 			},
 		},
-		Type: "Spredicate",
+		Type: "Resource",
 		Fields: map[string]*sqlgraph.FieldSpec{
-			spredicate.FieldPredicateType: {Type: field.TypeString, Column: spredicate.FieldPredicateType},
-			spredicate.FieldPredicate:     {Type: field.TypeJSON, Column: spredicate.FieldPredicate},
+			resource.FieldMessage: {Type: field.TypeJSON, Column: resource.FieldMessage},
 		},
 	}
 	graph.Nodes[2] = &sqlgraph.Node{
@@ -59,96 +57,104 @@ var schemaGraph = func() *sqlgraph.Schema {
 		},
 		Type: "Statement",
 		Fields: map[string]*sqlgraph.FieldSpec{
-			statement.FieldNamespace: {Type: field.TypeString, Column: statement.FieldNamespace},
-			statement.FieldStatement: {Type: field.TypeJSON, Column: statement.FieldStatement},
-		},
-	}
-	graph.Nodes[3] = &sqlgraph.Node{
-		NodeSpec: sqlgraph.NodeSpec{
-			Table:   subject.Table,
-			Columns: subject.Columns,
-			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeInt,
-				Column: subject.FieldID,
-			},
-		},
-		Type: "Subject",
-		Fields: map[string]*sqlgraph.FieldSpec{
-			subject.FieldSubjectType: {Type: field.TypeString, Column: subject.FieldSubjectType},
-			subject.FieldSubject:     {Type: field.TypeJSON, Column: subject.FieldSubject},
+			statement.FieldMediaType: {Type: field.TypeString, Column: statement.FieldMediaType},
 		},
 	}
 	graph.MustAddE(
-		"statement",
+		"statements",
 		&sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   object.StatementTable,
-			Columns: object.StatementPrimaryKey,
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   element.StatementsTable,
+			Columns: []string{element.StatementsColumn},
 			Bidi:    false,
 		},
-		"Object",
+		"Element",
 		"Statement",
 	)
 	graph.MustAddE(
-		"statement",
+		"resources",
 		&sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   spredicate.StatementTable,
-			Columns: spredicate.StatementPrimaryKey,
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   element.ResourcesTable,
+			Columns: []string{element.ResourcesColumn},
 			Bidi:    false,
 		},
-		"Spredicate",
-		"Statement",
+		"Element",
+		"Resource",
+	)
+	graph.MustAddE(
+		"locations",
+		&sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   element.LocationsTable,
+			Columns: []string{element.LocationsColumn},
+			Bidi:    false,
+		},
+		"Element",
+		"Resource",
+	)
+	graph.MustAddE(
+		"elements",
+		&sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   resource.ElementsTable,
+			Columns: []string{resource.ElementsColumn},
+			Bidi:    false,
+		},
+		"Resource",
+		"Element",
 	)
 	graph.MustAddE(
 		"objects",
 		&sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.ObjectsTable,
-			Columns: statement.ObjectsPrimaryKey,
+			Columns: []string{statement.ObjectsColumn},
 			Bidi:    false,
 		},
 		"Statement",
-		"Object",
+		"Element",
 	)
 	graph.MustAddE(
 		"predicates",
 		&sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.PredicatesTable,
-			Columns: statement.PredicatesPrimaryKey,
+			Columns: []string{statement.PredicatesColumn},
 			Bidi:    false,
 		},
 		"Statement",
-		"Spredicate",
+		"Element",
 	)
 	graph.MustAddE(
 		"subjects",
 		&sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   statement.SubjectsTable,
-			Columns: statement.SubjectsPrimaryKey,
+			Columns: []string{statement.SubjectsColumn},
 			Bidi:    false,
 		},
 		"Statement",
-		"Subject",
+		"Element",
 	)
 	graph.MustAddE(
-		"statement",
+		"statements",
 		&sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   subject.StatementTable,
-			Columns: subject.StatementPrimaryKey,
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   statement.StatementsTable,
+			Columns: []string{statement.StatementsColumn},
 			Bidi:    false,
 		},
-		"Subject",
 		"Statement",
+		"Element",
 	)
 	return graph
 }()
@@ -160,33 +166,33 @@ type predicateAdder interface {
 }
 
 // addPredicate implements the predicateAdder interface.
-func (oq *ObjectQuery) addPredicate(pred func(s *sql.Selector)) {
-	oq.predicates = append(oq.predicates, pred)
+func (eq *ElementQuery) addPredicate(pred func(s *sql.Selector)) {
+	eq.predicates = append(eq.predicates, pred)
 }
 
-// Filter returns a Filter implementation to apply filters on the ObjectQuery builder.
-func (oq *ObjectQuery) Filter() *ObjectFilter {
-	return &ObjectFilter{config: oq.config, predicateAdder: oq}
+// Filter returns a Filter implementation to apply filters on the ElementQuery builder.
+func (eq *ElementQuery) Filter() *ElementFilter {
+	return &ElementFilter{config: eq.config, predicateAdder: eq}
 }
 
 // addPredicate implements the predicateAdder interface.
-func (m *ObjectMutation) addPredicate(pred func(s *sql.Selector)) {
+func (m *ElementMutation) addPredicate(pred func(s *sql.Selector)) {
 	m.predicates = append(m.predicates, pred)
 }
 
-// Filter returns an entql.Where implementation to apply filters on the ObjectMutation builder.
-func (m *ObjectMutation) Filter() *ObjectFilter {
-	return &ObjectFilter{config: m.config, predicateAdder: m}
+// Filter returns an entql.Where implementation to apply filters on the ElementMutation builder.
+func (m *ElementMutation) Filter() *ElementFilter {
+	return &ElementFilter{config: m.config, predicateAdder: m}
 }
 
-// ObjectFilter provides a generic filtering capability at runtime for ObjectQuery.
-type ObjectFilter struct {
+// ElementFilter provides a generic filtering capability at runtime for ElementQuery.
+type ElementFilter struct {
 	predicateAdder
 	config
 }
 
 // Where applies the entql predicate on the query filter.
-func (f *ObjectFilter) Where(p entql.P) {
+func (f *ElementFilter) Where(p entql.P) {
 	f.addPredicate(func(s *sql.Selector) {
 		if err := schemaGraph.EvalP(schemaGraph.Nodes[0].Type, p, s); err != nil {
 			s.AddError(err)
@@ -195,28 +201,56 @@ func (f *ObjectFilter) Where(p entql.P) {
 }
 
 // WhereID applies the entql int predicate on the id field.
-func (f *ObjectFilter) WhereID(p entql.IntP) {
-	f.Where(p.Field(object.FieldID))
+func (f *ElementFilter) WhereID(p entql.IntP) {
+	f.Where(p.Field(element.FieldID))
 }
 
-// WhereObjectType applies the entql string predicate on the objectType field.
-func (f *ObjectFilter) WhereObjectType(p entql.StringP) {
-	f.Where(p.Field(object.FieldObjectType))
+// WhereResourceType applies the entql string predicate on the resourceType field.
+func (f *ElementFilter) WhereResourceType(p entql.StringP) {
+	f.Where(p.Field(element.FieldResourceType))
 }
 
-// WhereObject applies the entql json.RawMessage predicate on the object field.
-func (f *ObjectFilter) WhereObject(p entql.BytesP) {
-	f.Where(p.Field(object.FieldObject))
+// WhereLocatorType applies the entql string predicate on the locatorType field.
+func (f *ElementFilter) WhereLocatorType(p entql.StringP) {
+	f.Where(p.Field(element.FieldLocatorType))
 }
 
-// WhereHasStatement applies a predicate to check if query has an edge statement.
-func (f *ObjectFilter) WhereHasStatement() {
-	f.Where(entql.HasEdge("statement"))
+// WhereHasStatements applies a predicate to check if query has an edge statements.
+func (f *ElementFilter) WhereHasStatements() {
+	f.Where(entql.HasEdge("statements"))
 }
 
-// WhereHasStatementWith applies a predicate to check if query has an edge statement with a given conditions (other predicates).
-func (f *ObjectFilter) WhereHasStatementWith(preds ...predicate.Statement) {
-	f.Where(entql.HasEdgeWith("statement", sqlgraph.WrapFunc(func(s *sql.Selector) {
+// WhereHasStatementsWith applies a predicate to check if query has an edge statements with a given conditions (other predicates).
+func (f *ElementFilter) WhereHasStatementsWith(preds ...predicate.Statement) {
+	f.Where(entql.HasEdgeWith("statements", sqlgraph.WrapFunc(func(s *sql.Selector) {
+		for _, p := range preds {
+			p(s)
+		}
+	})))
+}
+
+// WhereHasResources applies a predicate to check if query has an edge resources.
+func (f *ElementFilter) WhereHasResources() {
+	f.Where(entql.HasEdge("resources"))
+}
+
+// WhereHasResourcesWith applies a predicate to check if query has an edge resources with a given conditions (other predicates).
+func (f *ElementFilter) WhereHasResourcesWith(preds ...predicate.Resource) {
+	f.Where(entql.HasEdgeWith("resources", sqlgraph.WrapFunc(func(s *sql.Selector) {
+		for _, p := range preds {
+			p(s)
+		}
+	})))
+}
+
+// WhereHasLocations applies a predicate to check if query has an edge locations.
+func (f *ElementFilter) WhereHasLocations() {
+	f.Where(entql.HasEdge("locations"))
+}
+
+// WhereHasLocationsWith applies a predicate to check if query has an edge locations with a given conditions (other predicates).
+func (f *ElementFilter) WhereHasLocationsWith(preds ...predicate.Resource) {
+	f.Where(entql.HasEdgeWith("locations", sqlgraph.WrapFunc(func(s *sql.Selector) {
 		for _, p := range preds {
 			p(s)
 		}
@@ -224,33 +258,33 @@ func (f *ObjectFilter) WhereHasStatementWith(preds ...predicate.Statement) {
 }
 
 // addPredicate implements the predicateAdder interface.
-func (sq *SpredicateQuery) addPredicate(pred func(s *sql.Selector)) {
-	sq.predicates = append(sq.predicates, pred)
+func (rq *ResourceQuery) addPredicate(pred func(s *sql.Selector)) {
+	rq.predicates = append(rq.predicates, pred)
 }
 
-// Filter returns a Filter implementation to apply filters on the SpredicateQuery builder.
-func (sq *SpredicateQuery) Filter() *SpredicateFilter {
-	return &SpredicateFilter{config: sq.config, predicateAdder: sq}
+// Filter returns a Filter implementation to apply filters on the ResourceQuery builder.
+func (rq *ResourceQuery) Filter() *ResourceFilter {
+	return &ResourceFilter{config: rq.config, predicateAdder: rq}
 }
 
 // addPredicate implements the predicateAdder interface.
-func (m *SpredicateMutation) addPredicate(pred func(s *sql.Selector)) {
+func (m *ResourceMutation) addPredicate(pred func(s *sql.Selector)) {
 	m.predicates = append(m.predicates, pred)
 }
 
-// Filter returns an entql.Where implementation to apply filters on the SpredicateMutation builder.
-func (m *SpredicateMutation) Filter() *SpredicateFilter {
-	return &SpredicateFilter{config: m.config, predicateAdder: m}
+// Filter returns an entql.Where implementation to apply filters on the ResourceMutation builder.
+func (m *ResourceMutation) Filter() *ResourceFilter {
+	return &ResourceFilter{config: m.config, predicateAdder: m}
 }
 
-// SpredicateFilter provides a generic filtering capability at runtime for SpredicateQuery.
-type SpredicateFilter struct {
+// ResourceFilter provides a generic filtering capability at runtime for ResourceQuery.
+type ResourceFilter struct {
 	predicateAdder
 	config
 }
 
 // Where applies the entql predicate on the query filter.
-func (f *SpredicateFilter) Where(p entql.P) {
+func (f *ResourceFilter) Where(p entql.P) {
 	f.addPredicate(func(s *sql.Selector) {
 		if err := schemaGraph.EvalP(schemaGraph.Nodes[1].Type, p, s); err != nil {
 			s.AddError(err)
@@ -259,28 +293,23 @@ func (f *SpredicateFilter) Where(p entql.P) {
 }
 
 // WhereID applies the entql int predicate on the id field.
-func (f *SpredicateFilter) WhereID(p entql.IntP) {
-	f.Where(p.Field(spredicate.FieldID))
+func (f *ResourceFilter) WhereID(p entql.IntP) {
+	f.Where(p.Field(resource.FieldID))
 }
 
-// WherePredicateType applies the entql string predicate on the predicateType field.
-func (f *SpredicateFilter) WherePredicateType(p entql.StringP) {
-	f.Where(p.Field(spredicate.FieldPredicateType))
+// WhereMessage applies the entql json.RawMessage predicate on the message field.
+func (f *ResourceFilter) WhereMessage(p entql.BytesP) {
+	f.Where(p.Field(resource.FieldMessage))
 }
 
-// WherePredicate applies the entql json.RawMessage predicate on the predicate field.
-func (f *SpredicateFilter) WherePredicate(p entql.BytesP) {
-	f.Where(p.Field(spredicate.FieldPredicate))
+// WhereHasElements applies a predicate to check if query has an edge elements.
+func (f *ResourceFilter) WhereHasElements() {
+	f.Where(entql.HasEdge("elements"))
 }
 
-// WhereHasStatement applies a predicate to check if query has an edge statement.
-func (f *SpredicateFilter) WhereHasStatement() {
-	f.Where(entql.HasEdge("statement"))
-}
-
-// WhereHasStatementWith applies a predicate to check if query has an edge statement with a given conditions (other predicates).
-func (f *SpredicateFilter) WhereHasStatementWith(preds ...predicate.Statement) {
-	f.Where(entql.HasEdgeWith("statement", sqlgraph.WrapFunc(func(s *sql.Selector) {
+// WhereHasElementsWith applies a predicate to check if query has an edge elements with a given conditions (other predicates).
+func (f *ResourceFilter) WhereHasElementsWith(preds ...predicate.Element) {
+	f.Where(entql.HasEdgeWith("elements", sqlgraph.WrapFunc(func(s *sql.Selector) {
 		for _, p := range preds {
 			p(s)
 		}
@@ -327,14 +356,9 @@ func (f *StatementFilter) WhereID(p entql.IntP) {
 	f.Where(p.Field(statement.FieldID))
 }
 
-// WhereNamespace applies the entql string predicate on the namespace field.
-func (f *StatementFilter) WhereNamespace(p entql.StringP) {
-	f.Where(p.Field(statement.FieldNamespace))
-}
-
-// WhereStatement applies the entql json.RawMessage predicate on the statement field.
-func (f *StatementFilter) WhereStatement(p entql.BytesP) {
-	f.Where(p.Field(statement.FieldStatement))
+// WhereMediaType applies the entql string predicate on the mediaType field.
+func (f *StatementFilter) WhereMediaType(p entql.StringP) {
+	f.Where(p.Field(statement.FieldMediaType))
 }
 
 // WhereHasObjects applies a predicate to check if query has an edge objects.
@@ -343,7 +367,7 @@ func (f *StatementFilter) WhereHasObjects() {
 }
 
 // WhereHasObjectsWith applies a predicate to check if query has an edge objects with a given conditions (other predicates).
-func (f *StatementFilter) WhereHasObjectsWith(preds ...predicate.Object) {
+func (f *StatementFilter) WhereHasObjectsWith(preds ...predicate.Element) {
 	f.Where(entql.HasEdgeWith("objects", sqlgraph.WrapFunc(func(s *sql.Selector) {
 		for _, p := range preds {
 			p(s)
@@ -357,7 +381,7 @@ func (f *StatementFilter) WhereHasPredicates() {
 }
 
 // WhereHasPredicatesWith applies a predicate to check if query has an edge predicates with a given conditions (other predicates).
-func (f *StatementFilter) WhereHasPredicatesWith(preds ...predicate.Spredicate) {
+func (f *StatementFilter) WhereHasPredicatesWith(preds ...predicate.Element) {
 	f.Where(entql.HasEdgeWith("predicates", sqlgraph.WrapFunc(func(s *sql.Selector) {
 		for _, p := range preds {
 			p(s)
@@ -371,7 +395,7 @@ func (f *StatementFilter) WhereHasSubjects() {
 }
 
 // WhereHasSubjectsWith applies a predicate to check if query has an edge subjects with a given conditions (other predicates).
-func (f *StatementFilter) WhereHasSubjectsWith(preds ...predicate.Subject) {
+func (f *StatementFilter) WhereHasSubjectsWith(preds ...predicate.Element) {
 	f.Where(entql.HasEdgeWith("subjects", sqlgraph.WrapFunc(func(s *sql.Selector) {
 		for _, p := range preds {
 			p(s)
@@ -379,64 +403,14 @@ func (f *StatementFilter) WhereHasSubjectsWith(preds ...predicate.Subject) {
 	})))
 }
 
-// addPredicate implements the predicateAdder interface.
-func (sq *SubjectQuery) addPredicate(pred func(s *sql.Selector)) {
-	sq.predicates = append(sq.predicates, pred)
+// WhereHasStatements applies a predicate to check if query has an edge statements.
+func (f *StatementFilter) WhereHasStatements() {
+	f.Where(entql.HasEdge("statements"))
 }
 
-// Filter returns a Filter implementation to apply filters on the SubjectQuery builder.
-func (sq *SubjectQuery) Filter() *SubjectFilter {
-	return &SubjectFilter{config: sq.config, predicateAdder: sq}
-}
-
-// addPredicate implements the predicateAdder interface.
-func (m *SubjectMutation) addPredicate(pred func(s *sql.Selector)) {
-	m.predicates = append(m.predicates, pred)
-}
-
-// Filter returns an entql.Where implementation to apply filters on the SubjectMutation builder.
-func (m *SubjectMutation) Filter() *SubjectFilter {
-	return &SubjectFilter{config: m.config, predicateAdder: m}
-}
-
-// SubjectFilter provides a generic filtering capability at runtime for SubjectQuery.
-type SubjectFilter struct {
-	predicateAdder
-	config
-}
-
-// Where applies the entql predicate on the query filter.
-func (f *SubjectFilter) Where(p entql.P) {
-	f.addPredicate(func(s *sql.Selector) {
-		if err := schemaGraph.EvalP(schemaGraph.Nodes[3].Type, p, s); err != nil {
-			s.AddError(err)
-		}
-	})
-}
-
-// WhereID applies the entql int predicate on the id field.
-func (f *SubjectFilter) WhereID(p entql.IntP) {
-	f.Where(p.Field(subject.FieldID))
-}
-
-// WhereSubjectType applies the entql string predicate on the subjectType field.
-func (f *SubjectFilter) WhereSubjectType(p entql.StringP) {
-	f.Where(p.Field(subject.FieldSubjectType))
-}
-
-// WhereSubject applies the entql json.RawMessage predicate on the subject field.
-func (f *SubjectFilter) WhereSubject(p entql.BytesP) {
-	f.Where(p.Field(subject.FieldSubject))
-}
-
-// WhereHasStatement applies a predicate to check if query has an edge statement.
-func (f *SubjectFilter) WhereHasStatement() {
-	f.Where(entql.HasEdge("statement"))
-}
-
-// WhereHasStatementWith applies a predicate to check if query has an edge statement with a given conditions (other predicates).
-func (f *SubjectFilter) WhereHasStatementWith(preds ...predicate.Statement) {
-	f.Where(entql.HasEdgeWith("statement", sqlgraph.WrapFunc(func(s *sql.Selector) {
+// WhereHasStatementsWith applies a predicate to check if query has an edge statements with a given conditions (other predicates).
+func (f *StatementFilter) WhereHasStatementsWith(preds ...predicate.Element) {
+	f.Where(entql.HasEdgeWith("statements", sqlgraph.WrapFunc(func(s *sql.Selector) {
 		for _, p := range preds {
 			p(s)
 		}

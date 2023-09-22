@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"database/sql"
 	"fmt"
 	"net"
 	"net/http"
@@ -19,7 +20,6 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/zitadel/oidc/pkg/client/rp"
 
-	"zotregistry.io/zot/ent"
 	"zotregistry.io/zot/errors"
 	"zotregistry.io/zot/pkg/api/config"
 	ext "zotregistry.io/zot/pkg/extensions"
@@ -52,7 +52,7 @@ type Controller struct {
 	CookieStore     sessions.Store
 	// runtime params
 	chosenPort int // kernel-chosen port
-	EntClient  *ent.Client
+	EntClient  *sql.DB
 }
 
 func NewController(config *config.Config) *Controller {
