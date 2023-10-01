@@ -1,0 +1,95 @@
+// main.go
+// This is the main entry point for the application.
+
+package main
+
+import (
+	"github.com/emporous/uor-zot/iac/config"
+	"github.com/emporous/uor-zot/iac/kubernetes"
+	cmd "github.com/pulumi/pulumi-command/sdk/go/command/local"
+	p "github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	cfg "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
+)
+
+func main() {
+	p.Run(runMain)
+}
+
+func runMain(ctx *p.Context) error {
+	// Load configurations
+	configCtx := cfg.New(ctx, "")
+	app := config.GetAppConfig(configCtx)
+	kubeConfig, kubeContext := config.GetKubeConfig(configCtx)
+	replicas := config.GetReplicas(configCtx)
+
+	// Create Kubernetes provider
+	provider, err := kubernetes.CreateProvider(ctx, kubeConfig, kubeContext)
+	if err != nil {
+		return err
+	}
+
+	// Create Kubernetes Deployment
+	deployment, err := kubernetes.CreateDeployment(ctx, app, provider, replicas)
+	if err != nil {
+		return err
+	}
+
+	// Export deployment name
+	ctx.Export("name", p.String(deployment.Metadata.ElementType().Name()))
+
+	// Run kind related tasks
+	return runKind(ctx, configCtx)
+}
+
+func runKind(ctx *p.Context, configCtx *cfg.Config) error {
+	// Read config settings
+	createDockerVolumes := configCtx.GetBool("createDockerVolumes")
+	deleteDockerVolumes := configCtx.GetBool("deleteDockerVolumes")
+
+	// Create Docker Volumes
+	if createDockerVolumes {
+		if err := runCommand(ctx, "docker", []string{"volume", "create", "kind-worker1-containerd"}); err != nil {
+			return err
+		}
+		if err := runCommand(ctx, "docker", []string{"volume", "create", "kind-control1-containerd"}); err != nil {
+			return err
+		}
+	}
+
+	// Create kind cluster
+	if err := runCommand(ctx, "kind", []string{"create", "cluster", "--config=./kind.yaml"}); err != nil {
+		return err
+	}
+
+	// Delete Docker Volumes
+	if deleteDockerVolumes {
+		if err := runCommand(ctx, "docker", []string{"volume", "rm", "kind-worker1-containerd"}); err != nil {
+			return err
+		}
+		if err := runCommand(ctx, "docker", []string{"volume", "rm", "kind-control1-containerd"}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func runCommand(ctx *p.Context, command string, args []string) error {
+	dir := "./"
+	stdin := ""
+	// Prepare the command
+	_, err := cmd.Run(ctx, &cmd.RunArgs{
+		Command: command,
+		Interpreter: []string{
+			"/bin/sh",
+			"-c",
+		},
+		Stdin: &stdin, // Use a pointer to a string
+		Dir:   &dir,   // Use a pointer to a string
+		Environment: map[string]string{
+			"VAR1": "value1",
+			"VAR2": "value2",
+		},
+	})
+	return err
+}
