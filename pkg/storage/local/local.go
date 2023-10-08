@@ -33,11 +33,12 @@ import (
 	zerr "zotregistry.io/zot/errors"
 	zcommon "zotregistry.io/zot/pkg/common"
 	"zotregistry.io/zot/pkg/extensions/monitoring"
+	"zotregistry.io/zot/pkg/extensions/uor/index"
+	"zotregistry.io/zot/pkg/extensions/uor/schema"
+	"zotregistry.io/zot/pkg/extensions/uor/sqlite"
 	zlog "zotregistry.io/zot/pkg/log"
 	zreg "zotregistry.io/zot/pkg/regexp"
 	"zotregistry.io/zot/pkg/scheduler"
-	"zotregistry.io/zot/pkg/search"
-	"zotregistry.io/zot/pkg/search/schema"
 	"zotregistry.io/zot/pkg/storage/cache"
 	common "zotregistry.io/zot/pkg/storage/common"
 	storageConstants "zotregistry.io/zot/pkg/storage/constants"
@@ -2052,7 +2053,7 @@ func (is *ImageStoreLocal) AddToIndex(repo string, mdescriptor ispec.Descriptor,
 			}
 			fmt.Printf("unmarshalled statement: %v\n", ustatement)
 
-			if err := search.AddStatement(ustatement, repo, layer, eclient); err != nil {
+			if err := index.AddStatement(ustatement, repo, layer, eclient); err != nil {
 				fmt.Printf("add statment err: %s", err)
 
 			}
@@ -2069,7 +2070,8 @@ func (is *ImageStoreLocal) AddToIndex(repo string, mdescriptor ispec.Descriptor,
 				return err
 			}
 
-			search.JSONSchemaToSQLiteSchema(schemaMap, &search.Table{}, eclient, "")
+			sqlite.JSONSchemaToSQLiteSchema(schemaMap, nil, eclient, repo, true)
+			sqlite.DumpSchema(eclient)
 
 		case layer.MediaType == "application/ld+json":
 			ld, err := is.GetBlobContent(repo, layer.Digest)
@@ -2083,9 +2085,9 @@ func (is *ImageStoreLocal) AddToIndex(repo string, mdescriptor ispec.Descriptor,
 				fmt.Println("error unmarshalling schema")
 				return err
 			}
-			JSONSchema := search.JSONLDToJSONSchema(ldMap)
+			JSONSchema := schema.JSONLDToJSONSchema(ldMap)
 
-			search.JSONSchemaToSQLiteSchema(JSONSchema, &search.Table{}, eclient, "")
+			sqlite.JSONSchemaToSQLiteSchema(JSONSchema, &sqlite.Table{}, eclient, repo, true)
 
 		}
 	}
@@ -2131,11 +2133,9 @@ func (is ImageStoreLocal) InitDatabase() (*sql.DB, error) {
 	}
 
 	// Initialize the UOR database with the StatementRecord struct
-	search.CreateStatementRecordTables(client)
+	index.CreateStatementRecordSchema(client)
 
-	search.DumpSchema(client)
-
-	fmt.Println("sqlite database initialized")
+	sqlite.DumpSchema(client)
 	return client, nil
 
 }

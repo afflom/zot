@@ -1,5 +1,9 @@
 package schema
 
+import (
+	ispec "github.com/opencontainers/image-spec/specs-go/v1"
+)
+
 type Element struct {
 	// LocatorType is the address of type information for the location.
 	LocatorType string `json:"locatorType,omitempty"`
@@ -32,6 +36,7 @@ type Location struct {
 	Namespace string `json:"namespace,omitempty"`
 }
 
+/*
 type Descriptor struct {
 	// MediaType is the media type of the object this schema refers to.
 	MediaType string `json:"mediaType,omitempty"`
@@ -46,4 +51,14 @@ type Descriptor struct {
 type UORDescriptor struct {
 	Descriptor
 	Location
+}*/
+
+// StatementRecord is the database root. It is equivalent to an
+// Element with a defined LocatorType of "uor_namespace" and
+// a defined ResourceType of "uor_statement"
+type StatementRecord struct {
+	LocatorType  string           `json:"locatorType,omitempty"`
+	Location     ispec.Descriptor `json:"location,omitempty"`
+	ResourceType string           `json:"resourceType,omitempty"`
+	Resource     Statement        `json:"resource,omitempty"`
 }

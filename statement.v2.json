@@ -2,30 +2,29 @@
     "schemaVersion": 99,
     "resType": "uor_statement",
     "subject":{
-        "resourceType": "oci_descriptor",
-        "locatorType": "oci_namespace",
+        "locatorType": "subject_test_lt",
+        "resourceType": "subject_test_rt",
         "location":{
-            "namespace": "hello/test3"
         },
         "resource":{
+
 
         }
     },
     "predicate":{
-        "locatorType": "oci_namespace",
-        "resourceType": "oci_descriptor",
+        "locatorType": "pred_test_lt",
+        "resourceType": "pred_test_rt",
         "location":{
-            "namespace": "hello/test2"
         },
         "resource":{
+
             
         }
     },
     "object":{
-        "locatorType": "oci_namespace",
-        "resourceType": "oci_descriptor",
+        "locatorType": "object_test_lt",
+        "resourceType": "object_test_rt",
         "location":{
-            "namespace": "hello/test1"
         },
         "resource":{
         }

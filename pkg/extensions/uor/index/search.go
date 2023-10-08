@@ -1,4 +1,4 @@
-package search
+package index
 
 import (
 	"database/sql"
@@ -8,7 +8,8 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	ispec "github.com/opencontainers/image-spec/specs-go/v1"
-	sschema "zotregistry.io/zot/pkg/search/schema" // Only struct definitions. No ent definitions.
+	sschema "zotregistry.io/zot/pkg/extensions/uor/schema"
+	"zotregistry.io/zot/pkg/extensions/uor/sqlite"
 )
 
 func AddStatement(statement sschema.Statement, repo string, descriptor ispec.Descriptor, eclient *sql.DB) error {
@@ -29,37 +30,13 @@ func AddStatement(statement sschema.Statement, repo string, descriptor ispec.Des
 		return fmt.Errorf("unmarshalling error: %v", err)
 	}
 	// Construct a StatementRecord from the statement and descriptor
-	location := sschema.Element{
-		ResourceType: "oci_descriptor",
-		Resource:     mdescriptor,
-		LocatorType:  "oci_namespace",
-		Location:     repoMap,
-	}
-	locationb, err := json.Marshal(location)
-	if err != nil {
-		return fmt.Errorf("error marshalling location: %v", err)
-	}
-
-	locationMap := make(map[string]interface{})
-	if err := json.Unmarshal(locationb, &locationMap); err != nil {
-		return fmt.Errorf("error unmarshalling location: %v", err)
-	}
-
-	statementb, err := json.Marshal(statement)
-	if err != nil {
-		return fmt.Errorf("error marshalling statement: %v", err)
-	}
-	statementMap := make(map[string]interface{})
-	if err := json.Unmarshal(statementb, &statementMap); err != nil {
-		return fmt.Errorf("error unmarshalling statement: %v", err)
-	}
-
-	statementRecord := sschema.Element{
-		Resource:     statementMap,
-		Location:     locationMap,
+	statementRecord := sschema.StatementRecord{
 		ResourceType: "uor_statement",
-		LocatorType:  "oci_namespace",
+		Resource:     statement,
+		LocatorType:  "oci_descriptor",
+		Location:     descriptor,
 	}
+	statementRecord.Location.URLs = append(statementRecord.Location.URLs, repo)
 
 	// Convert statementRecord to map[string]interface{}
 	statementRecordMap := make(map[string]interface{})
@@ -74,7 +51,12 @@ func AddStatement(statement sschema.Statement, repo string, descriptor ispec.Des
 
 	fmt.Printf("statement record map: %v\n", statementRecordMap)
 
-	result, err := QueryDatabase(eclient, sb)
+	initialTable := sqlite.Table{TableName: "uor_statementrecord"}
+	schemas := make(map[string]interface{})
+
+	result, err := sqlite.QueryDynamicSchema(eclient, statementRecordMap, &initialTable, schemas)
+	fmt.Printf("result: %v\n", result)
+
 	if err != nil {
 		return fmt.Errorf("error querying extended database: %v", err)
 	}
@@ -84,8 +66,8 @@ func AddStatement(statement sschema.Statement, repo string, descriptor ispec.Des
 		fmt.Printf("duplicate statement found for namespace: %s", repo)
 		return nil
 	}
-	var i int64
-	InsertJSONToSQLite(statementRecordMap, "", i, eclient, "")
+	//var i int64
+	sqlite.WriteToDynamicSchema(eclient, statementRecordMap, &initialTable, schemas)
 
 	return nil
 }
@@ -156,4 +138,15 @@ func Manifest2Statement(manifest ispec.Manifest) (sschema.Statement, error) {
 	fmt.Printf("statement: %+v\n", statement)
 
 	return statement, nil
+}
+
+func CreateStatementRecordSchema(db *sql.DB) {
+	fmt.Println("CreateStatementRecordTables called")
+	// Convert the statement to a JSON schema
+	statementSchema := sschema.GenerateJSONSchema(reflect.TypeOf(sschema.StatementRecord{}), true)
+	fmt.Printf("statementSchema: %v\n", statementSchema)
+	// Initialize the database with the statementSchema
+	sqlite.JSONSchemaToSQLiteSchema(statementSchema, nil, db, "uor_statementrecord", false)
+	fmt.Println("sqlite schema initialized")
+	// Convert the JSON schema to a GraphQL schema
 }

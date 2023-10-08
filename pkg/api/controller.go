@@ -20,6 +20,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/zitadel/oidc/pkg/client/rp"
 
+	ggql "github.com/graphql-go/graphql"
 	"zotregistry.io/zot/errors"
 	"zotregistry.io/zot/pkg/api/config"
 	ext "zotregistry.io/zot/pkg/extensions"
@@ -53,6 +54,8 @@ type Controller struct {
 	// runtime params
 	chosenPort int // kernel-chosen port
 	EntClient  *sql.DB
+	GQLSchema  *ggql.Schema
+	GQLHandler *http.Handler
 }
 
 func NewController(config *config.Config) *Controller {

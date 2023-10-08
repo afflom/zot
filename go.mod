@@ -57,13 +57,14 @@ require (
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.1
+	github.com/graphql-go/graphql v0.8.1
+	github.com/graphql-go/handler v0.2.3
 	github.com/migueleliasweb/go-github-mock v0.0.19
 	github.com/notaryproject/notation-go v1.0.0-rc.6
 	github.com/opencontainers/distribution-spec/specs-go v0.0.0-20230117141039-067a0f5b0e25
 	github.com/project-zot/mockoidc v0.0.0-20230307111146-f607b4b5fb97
 	github.com/sigstore/cosign/v2 v2.1.1
 	github.com/swaggo/http-swagger v1.3.4
-	github.com/tidwall/gjson v1.16.0
 	github.com/zitadel/oidc v1.13.4
 	golang.org/x/oauth2 v0.9.0
 	modernc.org/sqlite v1.23.1
@@ -178,8 +179,6 @@ require (
 	github.com/smarty/assertions v1.15.0 // indirect
 	github.com/spdx/tools-golang v0.5.0 // indirect
 	github.com/tetratelabs/wazero v1.2.1 // indirect
-	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/urfave/cli/v2 v2.25.5 // indirect
 	github.com/vbauerster/mpb/v8 v8.3.0 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect

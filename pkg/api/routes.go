@@ -157,15 +157,20 @@ func (rh *RouteHandler) SetupRoutes() {
 
 	// swagger
 	debug.SetupSwaggerRoutes(rh.c.Config, rh.c.Router, authHandler, rh.c.Log)
-	/*
-		serve := handler.NewDefaultServer(zroot.NewSchema(rh.c.EntClient))
 
-		fmt.Printf("entclient: %v", rh.c.EntClient)
-		rh.c.Router.Handle("/poc",
-			playground.Handler("Zot", "/query"),
-		)
-		rh.c.Router.Handle("/query", rh.c.GraphQLAuthzMiddleware(serve)) // Wrap the serve handler with the middleware
-	*/
+	// Serve GraphQL API
+	//rh.c.Router.Handle("/uor", *rh.c.GQLHandler)
+
+	// Serve GraphiQL
+	//h := handler.New(&handler.Config{
+	//	Schema:   rh.c.GQLSchema,
+	//	Pretty:   true,
+	//	GraphiQL: true,
+	//})
+	//rh.c.Router.Handle("/graphiql", h)
+
+	//rh.c.Router.Handle("/query", rh.c.GraphQLAuthzMiddleware(serve)) // Wrap the serve handler with the middleware
+
 	// Setup Extensions Routes
 	if rh.c.Config != nil {
 		if rh.c.Config.Extensions == nil {
