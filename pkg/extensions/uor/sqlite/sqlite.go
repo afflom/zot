@@ -1,11 +1,17 @@
 package sqlite
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"strings"
+	"time"
+
+	"github.com/graphql-go/graphql"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -17,7 +23,11 @@ type Table struct {
 	ColumnType string
 }
 
-func JSONSchemaToSQLiteSchema(jsonSchema map[string]interface{}, parent *Table, db *sql.DB, resType string, attach bool) {
+// JSONSchemaToSQLiteSchema converts a JSON schema to a SQLite schema while
+// building a GraphQL schema from the JSON schema. GraphQL query resolvers are
+// generated for each table and column in the SQLite schema and inserted into
+// the GraphQL schema.
+func JSONSchemaToSQLiteSchema(jsonSchema map[string]interface{}, parent *Table, db *sql.DB, resType string, attach bool, currentObject *graphql.Object) {
 	var createdTables []string
 	properties, hasProperties := jsonSchema["properties"].(map[string]interface{})
 
@@ -25,45 +35,117 @@ func JSONSchemaToSQLiteSchema(jsonSchema map[string]interface{}, parent *Table, 
 		fmt.Println("Debug: No properties found")
 		return
 	}
-
-	resType = urlToUnderscore(resType)
+	// The resType is the name of the logical schema being handled.
+	// It is the prefix for the table name. Any resource type that
+	// is not uor_statementrecord will be a child of the uor_statement
+	// resource and location anchors (see README.md)
+	resType = URLToUnderscore(resType)
 	var e Table
 
+	// if there is a parent table, then these columns are the added
+	// to that table
 	if parent != nil {
 		fmt.Printf("Debug: found parent: %v\n", parent.TableName)
 		e.TableName = parent.TableName
 
+		// if there is no parent, then this is a database initialization or
+		// a new logical schema. In either case, the create a new table
+		// with the name of the logical schema (resType).
 	} else {
 		fmt.Printf("Debug: no parent found, setting tablename: %v\n", resType)
 		e.TableName = resType
+
 		execSQL(db, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id INTEGER PRIMARY KEY);", e.TableName))
+
+		if currentObject.Name() != "uor_statementrecord" {
+			// Create the corresponding GraphQL object, whose name is the resType
+			//src := rand.NewSource(time.Now().UnixNano())
+			//r := rand.New(src)
+
+			// Generate a random number between 10000 and 99999
+			//randomNumber := r.Intn(90000) + 10000
+
+			//saltedKey := fmt.Sprintf("%s_%d", resType, randomNumber)
+
+			//randomNumberBytes := []byte(fmt.Sprintf("%d", saltedKey))
+
+			// Hash the byte slice using SHA-256
+			//hash := sha256.Sum256(randomNumberBytes)
+
+			// Convert the hash to a hexadecimal string
+			//hashHex := hex.EncodeToString(hash[:])
+			//hashHex = "_" + hashHex
+
+			// Create the root graphql object
+
+			currentObject = CreateObject(resType, graphql.Fields{})
+		}
+
 	}
 
+	// iterate over the properties of the json schema to discover the
+	// columns of the table
 	for key, value := range properties {
+		src := rand.NewSource(time.Now().UnixNano())
+		r := rand.New(src)
+
+		// Generate a random number between 10000 and 99999
+		randomNumber := r.Intn(90000) + 10000
+
+		saltedKey := fmt.Sprintf("%s_%d", key, randomNumber)
+
+		randomNumberBytes := []byte(fmt.Sprintf("%d", saltedKey))
+
+		// Hash the byte slice using SHA-256
+		hash := sha256.Sum256(randomNumberBytes)
+
+		// Convert the hash to a hexadecimal string
+		hashHex := hex.EncodeToString(hash[:])
+		hashHex = "_" + hashHex
+
+		skip := false
+		if key == "Location" || key == "Resource" {
+			skip = true
+		}
+
 		fmt.Printf("Debug: key: %v\n", StripPrefix(key))
+		// The propMap is a forecast of the current key's nested object's
+		// properties if it has them. It is used to determine if the
+		// current object is a UOR Element. If it
+		// is, then that child's table will be the start of a new
+		// logical schema.
 		propMap, isMap := value.(map[string]interface{})
 		fmt.Printf("Debug: propMap: %v\n", propMap)
 		var propsOnly map[string]interface{}
 
+		// if the current key is a map, then start constructing a new table
+		// and continue recursing into the schema.
 		if isMap {
 			typeVal, _ := propMap["type"].(string)
+			fmt.Printf("Debug: typeVal: %v\n", typeVal)
 			newTable := Table{TableName: e.TableName + "_" + StripPrefix(key)}
 
 			// Special handling for 'Resource' and 'Location'
 			// if the propMap has a 'properties' key, then save the value of that key
-			// to propsOnly
+			// to propsOnly.
+			// TODO: Needs better validation to determine that it is
+			// descending into a UOR Element.
 			var schemas map[string]interface{}
 			var exists bool
 			propsOnly, exists = propMap["properties"].(map[string]interface{})
 			fmt.Printf("propsOnly: %v\n", propsOnly)
 			if exists {
+				// if the uor_statement anchors are found, then prepare to
+				// handle their logical schemas. These if statements
+				// idenfity the element's type information and use it
+				// as the prefix of the element's child table name
+				// (the root of a new logical schema).
 				schemas := make(map[string]interface{})
 				if subject, _ := propsOnly["Subject"].(map[string]interface{}); exists {
 					fmt.Printf("found subject locator: %v\n", subject["LocatorType"])
 					subjectProps, _ := subject["properties"].(map[string]interface{})
 					schemas["subjectLocator"], _ = subjectProps["LocatorType"].(string)
 					schemas["subjectResource"], _ = subjectProps["ResourceType"].(string)
-
 				}
 				if predicate, _ := propsOnly["Predicate"].(map[string]interface{}); exists {
 					predicateProps, _ := predicate["properties"].(map[string]interface{})
@@ -87,7 +169,7 @@ func JSONSchemaToSQLiteSchema(jsonSchema map[string]interface{}, parent *Table, 
 				// then the new table name should be the value of the locatorType
 				if parent == nil && resType == "uor_statementrecord" {
 					newTable.TableName = "uor_statementrecord_location"
-
+					// Set the name of the new logical schema
 				} else {
 					switch parent.ColumnName {
 					case "Subject":
@@ -103,12 +185,20 @@ func JSONSchemaToSQLiteSchema(jsonSchema map[string]interface{}, parent *Table, 
 				}
 				// Initialize new logical schema with foreign key to parent
 				execSQL(db, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id INTEGER PRIMARY KEY, fk_%s INTEGER);", newTable.TableName, e.TableName))
-				JSONSchemaToSQLiteSchema(propMap, &newTable, db, "", false)
+
+				newObject := CreateObject(hashHex, graphql.Fields{})
+
+				currentObject.AddFieldConfig(key, &graphql.Field{
+					Name: key,
+					Type: newObject,
+				})
+				JSONSchemaToSQLiteSchema(propMap, &newTable, db, "", false, newObject)
 
 			} else if key == "Resource" {
 				if parent == nil && resType == "uor_statementrecord" {
 					newTable.TableName = "uor_statementrecord_resource"
 				} else {
+					// Set the name of the new logical schema
 					switch parent.ColumnName {
 					case "Subject":
 						fmt.Printf("processing subject resource: %v\n", schemas["subjectResource"])
@@ -123,7 +213,23 @@ func JSONSchemaToSQLiteSchema(jsonSchema map[string]interface{}, parent *Table, 
 				}
 				// Initialize new logical schema with foreign key to parent
 				execSQL(db, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id INTEGER PRIMARY KEY, fk_%s INTEGER);", newTable.TableName, e.TableName))
-				JSONSchemaToSQLiteSchema(propMap, &newTable, db, "", false)
+
+				newObject := CreateObject(hashHex, graphql.Fields{})
+
+				currentObject.AddFieldConfig(key, &graphql.Field{
+					Name: key,
+					Type: newObject,
+				})
+				JSONSchemaToSQLiteSchema(propMap, &newTable, db, "", false, newObject)
+
+			}
+			var fieldConfig graphql.Field
+			if skip {
+				continue
+			} else {
+				fieldConfig = graphql.Field{Name: key, Type: SqliteTypeToGraphqlType(typeVal)}
+				fmt.Printf("graphql key: %s, is type: %v\n", key, SqliteTypeToGraphqlType(typeVal))
+				currentObject.AddFieldConfig(key, &fieldConfig)
 
 			}
 
@@ -136,8 +242,20 @@ func JSONSchemaToSQLiteSchema(jsonSchema map[string]interface{}, parent *Table, 
 					execSQL(db, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id INTEGER PRIMARY KEY, fk_%s INTEGER);", newTable.TableName, e.TableName))
 				}
 				createdTables = append(createdTables, newTable.TableName)
-				JSONSchemaToSQLiteSchema(propMap, &newTable, db, "", false)
 
+				if skip {
+					fmt.Printf("skipping field: %v\n", key)
+					continue
+				} else {
+
+					newObject := CreateObject(hashHex, graphql.Fields{})
+
+					currentObject.AddFieldConfig(key, &graphql.Field{
+						Name: key,
+						Type: newObject,
+					})
+					JSONSchemaToSQLiteSchema(propMap, &newTable, db, "", false, newObject)
+				}
 			case "array":
 				// Handle arrays containing objects or primitives
 				items, hasItems := propMap["items"].([]interface{})
@@ -151,10 +269,24 @@ func JSONSchemaToSQLiteSchema(jsonSchema map[string]interface{}, parent *Table, 
 								arrayTable := Table{TableName: fmt.Sprintf("%s_array_%d", newTable.TableName, i)}
 								execSQL(db, fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id INTEGER PRIMARY KEY, fk_%s INTEGER);", arrayTable.TableName, newTable.TableName))
 								createdTables = append(createdTables, arrayTable.TableName)
-								JSONSchemaToSQLiteSchema(itemMap, &arrayTable, db, "", false)
+
+								newObject := CreateObject(hashHex, graphql.Fields{})
+
+								currentObject.AddFieldConfig(key, &graphql.Field{
+									Name: key,
+									Type: newObject,
+								})
+
+								JSONSchemaToSQLiteSchema(itemMap, &arrayTable, db, "", false, newObject)
 							} else {
 								// Handle primitive types in the array
 								primitiveType := typeMap(itemType)
+
+								currentObject.AddFieldConfig(key, &graphql.Field{
+									Name: key,
+									Type: SqliteTypeToGraphqlType(typeMap(typeVal)),
+								})
+								fmt.Printf("graphql key: %s, is type: %v\n", key, SqliteTypeToGraphqlType(typeMap(typeVal)))
 								execSQL(db, fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s_%d %s;", newTable.TableName, StripPrefix(key), i, primitiveType))
 							}
 						}
@@ -163,11 +295,27 @@ func JSONSchemaToSQLiteSchema(jsonSchema map[string]interface{}, parent *Table, 
 			default:
 				e.ColumnName = StripPrefix(key)
 				e.ColumnType = typeMap(typeVal)
+				currentObject.AddFieldConfig(key, &graphql.Field{
+					Name: key,
+					Type: SqliteTypeToGraphqlType(typeMap(typeVal)),
+				})
+				fmt.Printf("graphql key: %s, is type: %v\n", key, SqliteTypeToGraphqlType(typeMap(typeVal)))
+
 				execSQL(db, fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s;", e.TableName, e.ColumnName, e.ColumnType))
 			}
 		} else {
 			e.ColumnName = StripPrefix(key)
 			e.ColumnType = typeMap(fmt.Sprintf("%v", value))
+			if skip {
+				fmt.Printf("skipping field: %v\n", key)
+				continue
+			} else {
+				currentObject.AddFieldConfig(key, &graphql.Field{
+					Name: key,
+					Type: SqliteTypeToGraphqlType(typeMap(fmt.Sprintf("%v", value))),
+				})
+				fmt.Printf("graphql key: %s, is type: %v\n", key, SqliteTypeToGraphqlType(typeMap(fmt.Sprintf("%v", value))))
+			}
 			execSQL(db, fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s;", e.TableName, e.ColumnName, e.ColumnType))
 		}
 	}
@@ -196,6 +344,31 @@ func typeMap(jsonType string) string {
 	}
 }
 
+// SqliteTypeToGraphqlType maps SQLite types to GraphQL types
+func SqliteTypeToGraphqlType(sqliteType string) graphql.Output {
+	switch sqliteType {
+	case "INTEGER":
+		return graphql.Int
+	case "REAL":
+		return graphql.Float
+	case "TEXT":
+		return graphql.String
+	case "BOOLEAN":
+		return graphql.Boolean
+	case "NULL":
+		// GraphQL doesn't have a specific type for NULL, any type can be null
+		// TODO: handle null correctly
+		return graphql.String
+	default:
+		// GraphQL doesn't have a direct equivalent to SQLite's BLOB type
+		// TODO: handle BLOB correctly
+		return graphql.String
+	}
+}
+func ExecSQL(db *sql.DB, sqlStmt string) {
+	execSQL(db, sqlStmt)
+}
+
 func execSQL(db *sql.DB, sqlStmt string) {
 
 	result, err := db.Exec(sqlStmt)
@@ -210,6 +383,17 @@ func execSQL(db *sql.DB, sqlStmt string) {
 	fmt.Printf("result: %v\n", lastinsert)
 
 }
+
+/*
+func ExecQuery(db *sql.DB, sqlStmt string) (result sql.Result) {
+	db.Query()
+	result, err := db.Exec(sqlStmt)
+	if err != nil {
+		log.Printf("%q: %s\n", err, sqlStmt)
+		return
+	}
+
+}*/
 
 // stripPrefix removes the prefix from a key and returns the key without the prefix.
 func StripPrefix(key string) string {
@@ -319,6 +503,22 @@ func WriteToDynamicSchema(db *sql.DB, jsonDoc map[string]interface{}, parent *Ta
 	return nil
 }
 
+// genericResolver is a resolver function that can handle any field and query argument.
+func genericResolver(params graphql.ResolveParams) (interface{}, error) {
+	// The name of the field being resolved.
+	fieldName := params.Info.FieldName
+
+	// The query argument, if provided.
+	queryArg, isOk := params.Args["query"]
+	if !isOk {
+		queryArg = ""
+	}
+
+	// For simplicity, we'll just return the field name and query argument as a string.
+	// In a real application, you'd use these values to construct and execute a database query.
+	return fieldName + ": " + queryArg.(string), nil
+}
+
 // QueryDatabase queries an SQLite database based on a JSON-like map.
 func QueryDatabase(db *sql.DB, jsonDoc []byte) ([]map[string]interface{}, error) {
 	var queryJSON map[string]interface{}
@@ -407,7 +607,7 @@ func generateQuery(jsonMap map[string]interface{}, tableName string, parentKey s
 	return query, args
 }
 
-func urlToUnderscore(url string) string {
+func URLToUnderscore(url string) string {
 	// Replace each character that is not allowed in a SQL table name with an underscore
 	result := strings.Map(func(r rune) rune {
 		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
@@ -457,5 +657,23 @@ func DumpSchema(db *sql.DB) {
 
 	if err := rows.Err(); err != nil {
 		log.Fatalf("Row scanning error: %v", err)
+	}
+}
+
+func CreateObject(name string, fields graphql.Fields) *graphql.Object {
+	return graphql.NewObject(
+		graphql.ObjectConfig{
+			Name:   name,
+			Fields: fields,
+		},
+	)
+}
+
+// CreateField creates a new graphql.Field with the specified name, type, and resolver.
+func CreateField(name string, gType graphql.Output, resolve graphql.FieldResolveFn) *graphql.Field {
+	return &graphql.Field{
+		Type:        gType,
+		Description: name,
+		Resolve:     resolve,
 	}
 }

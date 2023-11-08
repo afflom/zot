@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,6 +15,9 @@ import (
 
 	// Add s3 support.
 	"github.com/docker/distribution/registry/storage/driver"
+	"github.com/graphql-go/graphql"
+	"go.mongodb.org/mongo-driver/mongo"
+
 	// Load s3 driver.
 	_ "github.com/docker/distribution/registry/storage/driver/s3-aws"
 	guuid "github.com/gofrs/uuid"
@@ -54,7 +56,7 @@ type ObjectStorage struct {
 }
 
 // InitDatabase implements types.ImageStore.
-func (*ObjectStorage) InitDatabase() (*sql.DB, error) {
+func (*ObjectStorage) InitDatabase() (*mongo.Database, *graphql.Schema, error) {
 	panic("unimplemented")
 }
 
@@ -64,7 +66,7 @@ func (*ObjectStorage) GetStatementDescriptor(repo string, digest godigest.Digest
 }
 
 // MarkStatement implements types.ImageStore.
-func (*ObjectStorage) AddToIndex(repo string, descriptor ispec.Descriptor, manifest ispec.Manifest, eclient *sql.DB) error {
+func (*ObjectStorage) AddToIndex(repo string, descriptor ispec.Descriptor, manifest ispec.Manifest, eclient *mongo.Database) error {
 	panic("unimplemented")
 }
 

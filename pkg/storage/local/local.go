@@ -2,13 +2,11 @@ package local
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -16,6 +14,10 @@ import (
 	"sync"
 	"time"
 	"unicode/utf8"
+
+	"github.com/graphql-go/graphql"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	apexlog "github.com/apex/log"
 	guuid "github.com/gofrs/uuid"
@@ -35,7 +37,6 @@ import (
 	"zotregistry.io/zot/pkg/extensions/monitoring"
 	"zotregistry.io/zot/pkg/extensions/uor/index"
 	"zotregistry.io/zot/pkg/extensions/uor/schema"
-	"zotregistry.io/zot/pkg/extensions/uor/sqlite"
 	zlog "zotregistry.io/zot/pkg/log"
 	zreg "zotregistry.io/zot/pkg/regexp"
 	"zotregistry.io/zot/pkg/scheduler"
@@ -2035,7 +2036,7 @@ func (is *ImageStoreLocal) RunDedupeBlobs(interval time.Duration, sch *scheduler
 // AddToIndex searches for Statements and Resource type definitions in an
 // OCI manifest. When found, the UOR database is extended and updated with
 // the discovered information.
-func (is *ImageStoreLocal) AddToIndex(repo string, mdescriptor ispec.Descriptor, manifest ispec.Manifest, eclient *sql.DB) error {
+func (is *ImageStoreLocal) AddToIndex(repo string, mdescriptor ispec.Descriptor, manifest ispec.Manifest, eclient *mongo.Database) error {
 
 	for _, layer := range manifest.Layers {
 		switch {
@@ -2070,8 +2071,9 @@ func (is *ImageStoreLocal) AddToIndex(repo string, mdescriptor ispec.Descriptor,
 				return err
 			}
 
-			sqlite.JSONSchemaToSQLiteSchema(schemaMap, nil, eclient, repo, true)
-			sqlite.DumpSchema(eclient)
+			//gqlSchema := sqlite.CreateObject(sqlite.URLToUnderscore(repo), graphql.Fields{})
+			//sqlite.JSONSchemaToSQLiteSchema(schemaMap, nil, eclient, repo, true, gqlSchema)
+			//sqlite.DumpSchema(eclient)
 
 		case layer.MediaType == "application/ld+json":
 			ld, err := is.GetBlobContent(repo, layer.Digest)
@@ -2085,9 +2087,11 @@ func (is *ImageStoreLocal) AddToIndex(repo string, mdescriptor ispec.Descriptor,
 				fmt.Println("error unmarshalling schema")
 				return err
 			}
-			JSONSchema := schema.JSONLDToJSONSchema(ldMap)
+			//JSONSchema := schema.JSONLDToJSONSchema(ldMap)
 
-			sqlite.JSONSchemaToSQLiteSchema(JSONSchema, &sqlite.Table{}, eclient, repo, true)
+			//gqlSchema := sqlite.CreateObject(sqlite.URLToUnderscore(repo), graphql.Fields{})
+
+			//sqlite.JSONSchemaToSQLiteSchema(JSONSchema, &sqlite.Table{}, eclient, repo, true, gqlSchema)
 
 		}
 	}
@@ -2099,6 +2103,10 @@ func (is *ImageStoreLocal) AddToIndex(repo string, mdescriptor ispec.Descriptor,
 	if err := search.AddStatement(mStatement, repo, mdescriptor, eclient); err != nil {
 		fmt.Printf("manifest indexing err: %s", err)
 	}*/
+
+	// TODO: Return the extended schema so that it can be reloaded into the
+	// graphql endpoint. Also, write the schema to disk, so that it can be
+	// extended later and its state persisted.
 	return nil
 }
 
@@ -2123,19 +2131,28 @@ func (is *ImageStoreLocal) GetStatementDescriptor(repo string, digest godigest.D
 	return file, nil
 }
 
-func (is ImageStoreLocal) InitDatabase() (*sql.DB, error) {
+func (is ImageStoreLocal) InitDatabase() (*mongo.Database, *graphql.Schema, error) {
 
-	// Create the UOR database
-	dbPath := fmt.Sprintf("file:%s/artifact-index.sqlite", is.rootDir)
-	client, err := sql.Open("sqlite3", dbPath)
+	// MongoDB connection string
+	// Replace "mongodb://localhost:27017" with your MongoDB connection string
+	connString := "mongodb://localhost:27017"
+
+	// Create a new MongoDB client
+	ctx := context.Background()
+	clientOptions := options.Client().ApplyURI(connString)
+	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
-		log.Fatalf("failed opening connection to sqlite: %v", err)
+		return nil, nil, err
 	}
+	if err := client.Ping(ctx, nil); err != nil {
+		return nil, nil, err
+	}
+	database := client.Database("uor")
+	database.Collection("statements")
 
 	// Initialize the UOR database with the StatementRecord struct
-	index.CreateStatementRecordSchema(client)
+	schema := index.CreateStatementRecordSchema(*database)
 
-	sqlite.DumpSchema(client)
-	return client, nil
+	return database, &schema, nil
 
 }

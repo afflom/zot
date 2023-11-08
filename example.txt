@@ -1,0 +1,110 @@
+
+query {
+    uor_statementecord {
+        uor_statement {
+            predicate {
+                nist_cve_schema(cve_id: "CVE-12345") {
+                    id
+                }
+            }
+            subject {
+                locatorType
+                resourceType
+            }
+        }
+    }
+}
+
+{
+  "data": {
+    "uor_statementrecord": {
+      "uor_statement": [
+        {
+          "predicate": {
+            "nist_cve_schema": {
+              "id": "CVE-12345"
+            }
+          },
+          "subject": [
+            {
+              "locatorType": "oci_distribution",
+              "resourceType": "oci_image"
+            },
+            {
+              "locatorType": "pypi",
+              "resourceType": "python_package"
+            },
+            {
+              "locatorType": "maven",
+              "resourceType": "pom"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+
+query {
+    uor_statementecord {
+        uor_statement {
+            predicate {
+                nist_cve_schema(cve_id: "CVE-12345") {
+                    id
+                }
+            }
+            subject(locatorType: "oci_distribution", resourceType: "oci_descriptor") {
+                location {
+                    oci_distribution {
+                        registry
+                        repository
+                    }
+                }
+                resource{
+                    oci_discriptor {
+                        digest
+                        mediaType
+                        size
+                    }
+                }
+            }
+        }
+    }
+}
+
+{
+  "data": {
+    "uor_statementrecord": {
+      "uor_statement": [
+        {
+          "predicate": {
+            "resource": {
+              "nist_cve_schema": {
+                "id": "CVE-12345"
+              }
+            }
+          },
+          "subject": [
+            {
+              "locatorType": "oci_distribution",
+              "resourceType": "oci_descriptor",
+              "location": {
+                "oci_distribution": {
+                  "registry": "registry-1.docker.io",
+                  "repository": "library/alpine"
+                }
+              }
+              "resource": {
+                "oci_discriptor": {
+                  "digest": "sha256:3f53bbf535c0a4b0a0b5c35739d1e6f5b5f9a2f1b4c1f2b9d06d3d8e9b9d2b4e",
+                  "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                  "size": 528
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

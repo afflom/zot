@@ -1,13 +1,14 @@
 package types
 
 import (
-	"database/sql"
 	"io"
 	"time"
 
+	"github.com/graphql-go/graphql"
 	godigest "github.com/opencontainers/go-digest"
 	ispec "github.com/opencontainers/image-spec/specs-go/v1"
 	artifactspec "github.com/oras-project/artifacts-spec/specs-go/v1"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"zotregistry.io/zot/pkg/scheduler"
 )
@@ -53,7 +54,7 @@ type ImageStore interface { //nolint:interfacebloat
 	RunDedupeBlobs(interval time.Duration, sch *scheduler.Scheduler)
 	RunDedupeForDigest(digest godigest.Digest, dedupe bool, duplicateBlobs []string) error
 	GetNextDigestWithBlobPaths(lastDigests []godigest.Digest) (godigest.Digest, []string, error)
-	AddToIndex(repo string, descriptor ispec.Descriptor, manifest ispec.Manifest, eclient *sql.DB) error
+	AddToIndex(repo string, descriptor ispec.Descriptor, manifest ispec.Manifest, eclient *mongo.Database) error
 	GetStatementDescriptor(repo string, digest godigest.Digest) ([]byte, error)
-	InitDatabase() (*sql.DB, error)
+	InitDatabase() (*mongo.Database, *graphql.Schema, error)
 }

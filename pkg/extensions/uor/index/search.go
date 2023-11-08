@@ -1,18 +1,22 @@
 package index
 
 import (
-	"database/sql"
+	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 
+	ggql "github.com/graphql-go/graphql"
 	_ "github.com/mattn/go-sqlite3"
 	ispec "github.com/opencontainers/image-spec/specs-go/v1"
+	"go.mongodb.org/mongo-driver/mongo"
+	zgql "zotregistry.io/zot/pkg/extensions/uor/graphql"
+	"zotregistry.io/zot/pkg/extensions/uor/schema"
 	sschema "zotregistry.io/zot/pkg/extensions/uor/schema"
-	"zotregistry.io/zot/pkg/extensions/uor/sqlite"
+
+	"github.com/invopop/jsonschema"
 )
 
-func AddStatement(statement sschema.Statement, repo string, descriptor ispec.Descriptor, eclient *sql.DB) error {
+func AddStatement(statement sschema.Statement, repo string, descriptor ispec.Descriptor, eclient *mongo.Database) error {
 	fmt.Printf("preparing to write statement: %v\n", statement)
 	repoMap := make(map[string]interface{})
 	repoMap["namespace"] = repo
@@ -32,16 +36,17 @@ func AddStatement(statement sschema.Statement, repo string, descriptor ispec.Des
 	// Construct a StatementRecord from the statement and descriptor
 	statementRecord := sschema.StatementRecord{
 		ResourceType: "uor_statement",
-		Resource:     statement,
+		Resource:     schema.Resource{UORStatement: statement},
 		LocatorType:  "oci_descriptor",
-		Location:     descriptor,
+		Location:     schema.Location{OCIDescriptor: descriptor},
 	}
-	statementRecord.Location.URLs = append(statementRecord.Location.URLs, repo)
+	statementRecord.Location.OCIDescriptor.URLs = append(statementRecord.Location.OCIDescriptor.URLs, repo)
 
 	// Convert statementRecord to map[string]interface{}
 	statementRecordMap := make(map[string]interface{})
 
 	sb, err := json.Marshal(statementRecord)
+	fmt.Printf("statement record: %v\n", string(sb))
 	if err != nil {
 		return fmt.Errorf("error marshalling statement record: %v", err)
 	}
@@ -50,31 +55,26 @@ func AddStatement(statement sschema.Statement, repo string, descriptor ispec.Des
 	}
 
 	fmt.Printf("statement record map: %v\n", statementRecordMap)
-
-	initialTable := sqlite.Table{TableName: "uor_statementrecord"}
-	schemas := make(map[string]interface{})
-
-	result, err := sqlite.QueryDynamicSchema(eclient, statementRecordMap, &initialTable, schemas)
-	fmt.Printf("result: %v\n", result)
-
+	// write the statement record to mongodb
+	var result *mongo.InsertOneResult
+	result, err = eclient.Collection("statements").InsertOne(context.Background(), statementRecordMap)
 	if err != nil {
-		return fmt.Errorf("error querying extended database: %v", err)
+		return fmt.Errorf("error inserting statement record: %v", err)
 	}
-	if reflect.DeepEqual(statementRecordMap, result) {
-		fmt.Printf("existing statement: %v\n", result)
-		fmt.Printf("new statement: %v\n", mdescriptor)
-		fmt.Printf("duplicate statement found for namespace: %s", repo)
-		return nil
-	}
-	//var i int64
-	sqlite.WriteToDynamicSchema(eclient, statementRecordMap, &initialTable, schemas)
-
+	fmt.Printf("inserted statement record: %v\n", result.InsertedID)
 	return nil
 }
 
 func Manifest2Statement(manifest ispec.Manifest) (sschema.Statement, error) {
 	var statement sschema.Statement
 	fmt.Println("Manifest2Statement called")
+	// marshal manifest to a byte slice
+	bmanifest, err := json.Marshal(manifest)
+	if err != nil {
+		return statement, fmt.Errorf("error marshalling manifest: %v", err)
+	}
+	var mmanifest map[string]interface{}
+	json.Unmarshal(bmanifest, mmanifest)
 
 	// Handle the config object
 	bConfig, err := json.Marshal(manifest.Config)
@@ -88,9 +88,10 @@ func Manifest2Statement(manifest ispec.Manifest) (sschema.Statement, error) {
 	}
 	fmt.Println("config unmarshalled")
 	if len(mConfig) != 0 {
+
 		statement.Object = &sschema.Element{
 			ResourceType: manifest.Config.MediaType,
-			Resource:     mConfig,
+			Resource:     mmanifest,
 		}
 
 		fmt.Printf("config is: %v\n", statement.Object)
@@ -113,7 +114,7 @@ func Manifest2Statement(manifest ispec.Manifest) (sschema.Statement, error) {
 	}
 	statement.Subject = &sschema.Element{
 		ResourceType: manifest.MediaType,
-		Resource:     mLayers,
+		Resource:     mmanifest,
 	}
 
 	fmt.Printf("layers are: %+v\n", statement.Subject)
@@ -131,7 +132,7 @@ func Manifest2Statement(manifest ispec.Manifest) (sschema.Statement, error) {
 		return statement, fmt.Errorf("error unmarshalling manifest: %v", err)
 	}
 	statement.Predicate = &sschema.Element{
-		Resource:     mManifest,
+		Resource:     mmanifest,
 		ResourceType: manifest.MediaType,
 	}
 
@@ -140,13 +141,41 @@ func Manifest2Statement(manifest ispec.Manifest) (sschema.Statement, error) {
 	return statement, nil
 }
 
-func CreateStatementRecordSchema(db *sql.DB) {
+func CreateStatementRecordSchema(database mongo.Database) ggql.Schema {
 	fmt.Println("CreateStatementRecordTables called")
 	// Convert the statement to a JSON schema
-	statementSchema := sschema.GenerateJSONSchema(reflect.TypeOf(sschema.StatementRecord{}), true)
-	fmt.Printf("statementSchema: %v\n", statementSchema)
-	// Initialize the database with the statementSchema
-	sqlite.JSONSchemaToSQLiteSchema(statementSchema, nil, db, "uor_statementrecord", false)
-	fmt.Println("sqlite schema initialized")
-	// Convert the JSON schema to a GraphQL schema
+	//statementSchema := sschema.GenerateJSONSchema(reflect.TypeOf(sschema.Statement{}))
+	JSONstatementRecordSchema := jsonschema.Reflect(&sschema.StatementRecord{})
+
+	data, err := json.MarshalIndent(JSONstatementRecordSchema, "", "  ")
+	if err != nil {
+		panic(err.Error())
+	}
+	fmt.Println(string(data))
+
+	schemaRecord, err := json.Marshal(JSONstatementRecordSchema)
+	if err != nil {
+		panic(err.Error())
+
+	}
+
+	var schema map[string]interface{}
+	json.Unmarshal([]byte(schemaRecord), &schema)
+
+	// Convert to GraphQL Schema
+	graphqlSchema, err := zgql.ConvertToGraphQL(schema, "uor_statementrecord", database)
+	if err != nil {
+		panic(err.Error())
+	}
+	fmt.Printf("generated schema: %v\n", graphqlSchema)
+	zgql.PrintFieldDefinitions(graphqlSchema.Fields(), "  ")
+
+	gqlSchema, err := ggql.NewSchema(ggql.SchemaConfig{
+		Query: graphqlSchema,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	return gqlSchema
 }

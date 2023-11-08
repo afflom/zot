@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"database/sql"
 	"fmt"
 	"net"
 	"net/http"
@@ -19,6 +18,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/zitadel/oidc/pkg/client/rp"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	ggql "github.com/graphql-go/graphql"
 	"zotregistry.io/zot/errors"
@@ -52,10 +52,10 @@ type Controller struct {
 	RelyingParties  map[string]rp.RelyingParty
 	CookieStore     sessions.Store
 	// runtime params
-	chosenPort int // kernel-chosen port
-	EntClient  *sql.DB
-	GQLSchema  *ggql.Schema
-	GQLHandler *http.Handler
+	chosenPort  int // kernel-chosen port
+	UORDatabase *mongo.Database
+	GQLSchema   *ggql.Schema
+	GQLHandler  *http.Handler
 }
 
 func NewController(config *config.Config) *Controller {
@@ -241,7 +241,7 @@ func (c *Controller) Init(reloadCtx context.Context) error {
 
 	var err error
 	is := c.StoreController.DefaultStore
-	c.EntClient, err = is.InitDatabase()
+	c.UORDatabase, c.GQLSchema, err = is.InitDatabase()
 	if err != nil {
 		return err
 	}

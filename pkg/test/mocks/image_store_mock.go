@@ -1,13 +1,14 @@
 package mocks
 
 import (
-	"database/sql"
 	"io"
 	"time"
 
+	"github.com/graphql-go/graphql"
 	godigest "github.com/opencontainers/go-digest"
 	ispec "github.com/opencontainers/image-spec/specs-go/v1"
 	artifactspec "github.com/oras-project/artifacts-spec/specs-go/v1"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"zotregistry.io/zot/pkg/scheduler"
 )
@@ -52,13 +53,13 @@ type MockedImageStore struct {
 	RunDedupeBlobsFn             func(interval time.Duration, sch *scheduler.Scheduler)
 	RunDedupeForDigestFn         func(digest godigest.Digest, dedupe bool, duplicateBlobs []string) error
 	GetNextDigestWithBlobPathsFn func(lastDigests []godigest.Digest) (godigest.Digest, []string, error)
-	AddToIndexfn                 func(repo string, descriptor ispec.Descriptor, manifest ispec.Manifest, eclient *sql.DB) error
+	AddToIndexfn                 func(repo string, descriptor ispec.Descriptor, manifest ispec.Manifest, eclient *mongo.Database) error
 	GetStatementDescriptorfn     func(repo string, digest godigest.Digest) ([]byte, error)
-	InitDatabasefn               func() (*sql.DB, error)
+	InitDatabasefn               func() (*mongo.Database, *graphql.Schema, error)
 }
 
-func (MockedImageStore) InitDatabase() (*sql.DB, error) {
-	return nil, nil
+func (MockedImageStore) InitDatabase() (*mongo.Database, *graphql.Schema, error) {
+	return nil, nil, nil
 }
 
 // GetStatementDescriptor implements types.ImageStore.
@@ -66,7 +67,7 @@ func (MockedImageStore) GetStatementDescriptor(repo string, digest godigest.Dige
 	return nil, nil
 }
 
-func (is MockedImageStore) AddToIndex(repo string, descriptor ispec.Descriptor, manifest ispec.Manifest, eclient *sql.DB) error {
+func (is MockedImageStore) AddToIndex(repo string, descriptor ispec.Descriptor, manifest ispec.Manifest, eclient *mongo.Database) error {
 	return nil
 }
 

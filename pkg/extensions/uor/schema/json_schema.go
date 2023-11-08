@@ -1,65 +1,62 @@
 package schema
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 )
 
-func GenerateJSONSchema(t reflect.Type, root bool) map[string]interface{} {
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
+func GenerateJSONSchema(t reflect.Type) map[string]interface{} {
+	schema := map[string]interface{}{}
 
-	schema := make(map[string]interface{})
-
-	if root {
-		schema["$schema"] = "http://json-schema.org/draft-07/schema#"
-	}
-
-	properties := make(map[string]interface{})
-
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		fieldType := field.Type
-
-		if fieldType.Kind() == reflect.Ptr {
-			fieldType = fieldType.Elem()
+	switch t.Kind() {
+	case reflect.String:
+		schema["type"] = "string"
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		schema["type"] = "integer"
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		schema["type"] = "integer"
+	case reflect.Bool:
+		schema["type"] = "boolean"
+	case reflect.Float32, reflect.Float64:
+		schema["type"] = "number"
+	case reflect.Array, reflect.Slice:
+		schema["type"] = "array"
+		schema["items"] = GenerateJSONSchema(t.Elem())
+	case reflect.Map:
+		schema["type"] = "object"
+		schema["additionalProperties"] = GenerateJSONSchema(t.Elem())
+	case reflect.Struct:
+		schema["type"] = "object"
+		properties := map[string]interface{}{}
+		for i := 0; i < t.NumField(); i++ {
+			field := t.Field(i)
+			properties[field.Name] = GenerateJSONSchema(field.Type)
 		}
-
-		fieldSchema := make(map[string]interface{})
-
-		switch fieldType.Kind() {
-		case reflect.String:
-			fieldSchema["type"] = "string"
-		case reflect.Int, reflect.Int64:
-			fieldSchema["type"] = "integer"
-		case reflect.Bool:
-			fieldSchema["type"] = "boolean"
-		case reflect.Float64:
-			fieldSchema["type"] = "number"
-		case reflect.Struct:
-			fieldSchema = GenerateJSONSchema(fieldType, false)
-		case reflect.Map:
-			fieldSchema["type"] = "object"
-		default:
-			fieldSchema["type"] = "null"
-		}
-
-		properties[field.Name] = fieldSchema
+		schema["properties"] = properties
+	case reflect.Ptr:
+		// Dereference pointer to get the underlying type
+		return GenerateJSONSchema(t.Elem())
+	default:
+		panic(fmt.Sprintf("unsupported type: %v", t))
 	}
-
-	schema["type"] = "object"
-	schema["properties"] = properties
-
-	// marshal schema as json and print to the terminal
-	b, err := json.MarshalIndent(schema, "", "  ")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("schema: %s\n", b)
 
 	return schema
+}
+
+// Helper function to map Go types to JSON Schema types
+func typeToJSONSchemaType(kind reflect.Kind) string {
+	switch kind {
+	case reflect.String:
+		return "string"
+	case reflect.Int, reflect.Int64:
+		return "integer"
+	case reflect.Bool:
+		return "boolean"
+	case reflect.Float64:
+		return "number"
+	default:
+		return "null"
+	}
 }
 
 func JSONLDToJSONSchema(jsonld map[string]interface{}) map[string]interface{} {

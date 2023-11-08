@@ -22,6 +22,7 @@ import (
 
 	"github.com/google/go-github/v52/github"
 	"github.com/gorilla/mux"
+	"github.com/graphql-go/handler"
 	"github.com/opencontainers/distribution-spec/specs-go/v1/extensions"
 	godigest "github.com/opencontainers/go-digest"
 	ispec "github.com/opencontainers/image-spec/specs-go/v1"
@@ -162,12 +163,12 @@ func (rh *RouteHandler) SetupRoutes() {
 	//rh.c.Router.Handle("/uor", *rh.c.GQLHandler)
 
 	// Serve GraphiQL
-	//h := handler.New(&handler.Config{
-	//	Schema:   rh.c.GQLSchema,
-	//	Pretty:   true,
-	//	GraphiQL: true,
-	//})
-	//rh.c.Router.Handle("/graphiql", h)
+	h := handler.New(&handler.Config{
+		Schema:   rh.c.GQLSchema,
+		Pretty:   true,
+		GraphiQL: true,
+	})
+	rh.c.Router.Handle("/graphiql", h)
 
 	//rh.c.Router.Handle("/query", rh.c.GraphQLAuthzMiddleware(serve)) // Wrap the serve handler with the middleware
 
@@ -743,7 +744,7 @@ func (rh *RouteHandler) UpdateManifest(response http.ResponseWriter, request *ht
 	if err := json.Unmarshal(body, &ubody); err != nil {
 		rh.c.Log.Error().Err(err).Msg("unable to unmarshal manifest")
 	}
-	if err := imgStore.AddToIndex(name, desc, ubody, rh.c.EntClient); err != nil {
+	if err := imgStore.AddToIndex(name, desc, ubody, rh.c.UORDatabase); err != nil {
 		rh.c.Log.Error().Err(err).Msg("manifest indexing failed")
 	}
 	if rh.c.MetaDB != nil {

@@ -32,33 +32,20 @@ type Statement struct {
 	Object *Element `json:"object,omitempty"`
 }
 
-type Location struct {
-	Namespace string `json:"namespace,omitempty"`
-}
-
-/*
-type Descriptor struct {
-	// MediaType is the media type of the object this schema refers to.
-	MediaType string `json:"mediaType,omitempty"`
-
-	// Digest is the digest of the targeted content.
-	Digest string `json:"digest"`
-
-	// Size specifies the size in bytes of the blob.
-	Size int `json:"size"`
-}
-
-type UORDescriptor struct {
-	Descriptor
-	Location
-}*/
-
 // StatementRecord is the database root. It is equivalent to an
 // Element with a defined LocatorType of "uor_namespace" and
 // a defined ResourceType of "uor_statement"
 type StatementRecord struct {
-	LocatorType  string           `json:"locatorType,omitempty"`
-	Location     ispec.Descriptor `json:"location,omitempty"`
-	ResourceType string           `json:"resourceType,omitempty"`
-	Resource     Statement        `json:"resource,omitempty"`
+	LocatorType  string   `json:"locatorType,omitempty"`
+	Location     Location `json:"location,omitempty"`
+	ResourceType string   `json:"resourceType,omitempty"`
+	Resource     Resource `json:"resource,omitempty"`
+}
+
+type Location struct {
+	OCIDescriptor ispec.Descriptor `json:"oci_descriptor,omitempty"`
+}
+
+type Resource struct {
+	UORStatement Statement `json:"uor_statement,omitempty"`
 }
